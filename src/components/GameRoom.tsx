@@ -1,0 +1,197 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Music, LogOut } from 'lucide-react';
+import { fetchPlaylistTracks } from '../utils/spotify';
+import { GenreSelection } from './GenreSelection';
+import { GamePlay } from './GamePlay';
+import { RevealScreen } from './RevealScreen';
+import { genres } from '../data/genres';
+import { areSimilar } from '../utils/stringMatch';
+import type { Genre, GameState, SpotifyTrack } from '../types/game';
+
+export const GameRoom = () => {
+  const navigate = useNavigate();
+  const [gameState, setGameState] = useState<GameState>({
+    currentTrack: null,
+    score: 0,
+    gameStatus: 'selecting',
+    timeLeft: 30
+  });
+  const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
+  const [answer, setAnswer] = useState('');
+  const [artistAnswer, setArtistAnswer] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [hasStarted, setHasStarted] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('spotify_token');
+    if (!token) {
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isPlaying && hasStarted) {
+      timer = setInterval(() => {
+        setElapsedTime(prev => {
+          const newTime = prev + 0.01;
+          if (newTime >= 30) {
+            handleAnswerSubmit();
+            return 30;
+          }
+          return newTime;
+        });
+      }, 10);
+    }
+    return () => clearInterval(timer);
+  }, [isPlaying, hasStarted]);
+
+  const startGame = useCallback((availableTracks: SpotifyTrack[]) => {
+    const randomTrack = availableTracks[Math.floor(Math.random() * availableTracks.length)];
+    setGameState(prev => ({
+      ...prev,
+      currentTrack: randomTrack,
+      gameStatus: 'playing',
+      timeLeft: 30
+    }));
+    setElapsedTime(0);
+    setHasStarted(false);
+    setIsPlaying(false);
+  }, []);
+
+  const handleGenreSelect = async (genre: Genre) => {
+    try {
+      const data = await fetchPlaylistTracks(genre.playlistId);
+      if (!data) {
+        navigate('/login');
+        return;
+      }
+      const validTracks = data.items
+        .map((item: any) => item.track)
+        .filter((track: SpotifyTrack) => track && track.preview_url);
+      
+      setTracks(validTracks);
+      startGame(validTracks);
+    } catch (error) {
+      console.error('Failed to load tracks:', error);
+      navigate('/login');
+    }
+  };
+
+  const handleAnswerSubmit = () => {
+    setIsPlaying(false);
+    setHasStarted(false);
+    setGameState(prev => ({
+      ...prev,
+      gameStatus: 'revealed',
+      score: isCorrectAnswer() ? prev.score + (isCorrectArtist() ? 2 : 1) : prev.score
+    }));
+  };
+
+  const isCorrectAnswer = () => {
+    if (!gameState.currentTrack) return false;
+    return areSimilar(answer, gameState.currentTrack.name);
+  };
+
+  const isCorrectArtist = () => {
+    if (!gameState.currentTrack) return false;
+    return areSimilar(artistAnswer, gameState.currentTrack.artists[0].name);
+  };
+
+  const handleNextSong = () => {
+    startGame(tracks);
+    setAnswer('');
+    setArtistAnswer('');
+  };
+
+  const handlePlayPause = (playing: boolean) => {
+    setIsPlaying(playing);
+    if (playing && !hasStarted) {
+      setHasStarted(true);
+    }
+  };
+
+  const handleLogout = async () => {
+    setIsPlaying(false);
+    try {
+      const token = localStorage.getItem('spotify_token');
+      if (token) {
+        await fetch('https://accounts.spotify.com/api/token/revoke', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error revoking token:', error);
+    } finally {
+      localStorage.removeItem('spotify_token');
+      navigate('/login');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-800 text-white">
+      <div className="max-w-6xl mx-auto p-8">
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <Music className="w-10 h-10 text-green-400" />
+            <h1 className="text-3xl font-bold">Beat the Intro</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            {gameState.gameStatus !== 'selecting' && (
+              <div className="text-xl font-bold">
+                Score: {gameState.score}
+              </div>
+            )}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 transition"
+            >
+              <LogOut size={20} />
+              Logout
+            </button>
+          </div>
+        </div>
+
+        {gameState.gameStatus === 'selecting' && (
+          <GenreSelection 
+            genres={genres} 
+            onGenreSelect={handleGenreSelect} 
+          />
+        )}
+
+        {gameState.gameStatus === 'playing' && gameState.currentTrack && (
+          <GamePlay
+            track={gameState.currentTrack}
+            answer={answer}
+            artistAnswer={artistAnswer}
+            onAnswerChange={setAnswer}
+            onArtistAnswerChange={setArtistAnswer}
+            onSubmit={handleAnswerSubmit}
+            elapsedTime={elapsedTime}
+            isPlaying={isPlaying}
+            hasStarted={hasStarted}
+            onPlayPause={handlePlayPause}
+          />
+        )}
+
+        {gameState.gameStatus === 'revealed' && gameState.currentTrack && (
+          <RevealScreen
+            track={gameState.currentTrack}
+            userAnswer={answer}
+            userArtistAnswer={artistAnswer}
+            isCorrect={isCorrectAnswer()}
+            isArtistCorrect={isCorrectArtist()}
+            score={gameState.score}
+            onNextSong={handleNextSong}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
