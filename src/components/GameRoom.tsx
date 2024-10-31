@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Music, LogOut, Home } from 'lucide-react';
 import { fetchPlaylistTracks } from '../utils/spotify';
 import { GenreSelection } from './GenreSelection';
+import { PlaylistSelection } from './PlaylistSelection';
 import { GamePlay } from './GamePlay';
 import { RevealScreen } from './RevealScreen';
 import { genres } from '../data/genres';
 import { areSimilar } from '../utils/stringMatch';
 import type { Genre, GameState, SpotifyTrack } from '../types/game';
+import type { Playlist } from '../types/spotify';
 
 interface GameRoomProps {
   initialTrackId?: string | null;
@@ -21,6 +23,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
     gameStatus: initialTrackId ? 'playing' : 'selecting',
     timeLeft: 30
   });
+  const [showPlaylists, setShowPlaylists] = useState(false);
   const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
   const [answer, setAnswer] = useState('');
   const [artistAnswer, setArtistAnswer] = useState('');
@@ -110,6 +113,26 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
     }
   };
 
+  const handlePlaylistSelect = async (playlist: Playlist) => {
+    try {
+      const data = await fetchPlaylistTracks(playlist.id);
+      if (!data) {
+        navigate('/login');
+        return;
+      }
+      const validTracks = data.items
+        .map((item: any) => item.track)
+        .filter((track: SpotifyTrack) => track && track.preview_url);
+      
+      setTracks(validTracks);
+      setShowPlaylists(false);
+      startGame(validTracks);
+    } catch (error) {
+      console.error('Failed to load tracks:', error);
+      navigate('/login');
+    }
+  };
+
   const handleAnswerSubmit = () => {
     setIsPlaying(false);
     setHasStarted(false);
@@ -132,7 +155,6 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
 
   const handleNextSong = () => {
     if (initialTrackId) {
-      // If we came from a shared link, go back to genre selection
       setGameState(prev => ({ ...prev, gameStatus: 'selecting' }));
       setTracks([]);
     } else {
@@ -176,6 +198,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
       gameStatus: 'selecting',
       score: 0
     }));
+    setShowPlaylists(false);
     setTracks([]);
   };
 
@@ -213,10 +236,18 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
           )}
         </div>
 
-        {gameState.gameStatus === 'selecting' && (
+        {gameState.gameStatus === 'selecting' && !showPlaylists && (
           <GenreSelection 
             genres={genres} 
-            onGenreSelect={handleGenreSelect} 
+            onGenreSelect={handleGenreSelect}
+            onShowPlaylists={() => setShowPlaylists(true)}
+          />
+        )}
+
+        {gameState.gameStatus === 'selecting' && showPlaylists && (
+          <PlaylistSelection
+            onPlaylistSelect={handlePlaylistSelect}
+            onBack={() => setShowPlaylists(false)}
           />
         )}
 
