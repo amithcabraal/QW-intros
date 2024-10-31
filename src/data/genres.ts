@@ -1,35 +1,32 @@
 export const genres = [
   {
+    id: '0SdFPQxsbteNQxx8pVoBiE',
+    name: 'Beat the Intro',
+    playlistId: '0SdFPQxsbteNQxx8pVoBiE'
+  },
+  {
     id: '37i9dQZF1DX4o1oenSJRJd',
-    name: '90s Rock Classics',
+    name: 'All Out 2000s',
     playlistId: '37i9dQZF1DX4o1oenSJRJd'
   },
   {
+    id: '37i9dQZF1DXbTxeAdrVG2l',
+    name: 'All Out 90s',
+    playlistId: '37i9dQZF1DXbTxeAdrVG2l'
+  },
+  {
+    id: '37i9dQZF1DWTJ7xPn4vNaz',
+    name: 'All Out 70s',
+    playlistId: '37i9dQZF1DWTJ7xPn4vNaz'
+  },
+  {
+    id: '37i9dQZF1DX5Ejj0EkURtP',
+    name: 'All Out 2010s',
+    playlistId: '37i9dQZF1DX5Ejj0EkURtP'
+  },
+  {
     id: '37i9dQZF1DX4UtSsGT1Sbe',
-    name: '80s Hits',
+    name: 'All Out 80s',
     playlistId: '37i9dQZF1DX4UtSsGT1Sbe'
-  },
-  {
-    id: '37i9dQZF1DX1lVhptIYRda',
-    name: 'Hip Hop Classics',
-    playlistId: '37i9dQZF1DX1lVhptIYRda'
-  },
-  {
-    id: '37i9dQZF1DX4sWSpwq3LiO',
-    name: 'Pop Classics',
-    playlistId: '37i9dQZF1DX4sWSpwq3LiO'
-  },
-  {
-    id: '37i9dQZF1DX18jTM2l2fJY',
-    name: '2020s Pop Hits',
-    playlistId: '37i9dQZF1DX18jTM2l2fJY'
-  },
-  /*
-  {
-    id : '5zDTMTesxw4Sz83gDwvTXX',
-   name : '1983',
-  playlistId : '5zDTMTesxw4Sz83gDwvTXX'
-}*/
-  
-
+  }
 ];
