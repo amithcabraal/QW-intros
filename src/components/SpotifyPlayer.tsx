@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface SpotifyPlayerProps {
   trackId: string;
@@ -45,7 +45,7 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
     } else {
       audioRef.current.pause();
     }
-  }, [isPlaying, previewUrl]);
+  }, [isPlaying, previewUrl, onPause]);
 
   useEffect(() => {
     if (!audioRef.current || !previewUrl) return;
