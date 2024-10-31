@@ -35,6 +35,24 @@ export const GamePlay: React.FC<GamePlayProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}.${centisecs.toString().padStart(2, '0')}`;
   };
 
+  if (!track.preview_url) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 text-center">
+          <Music className="w-16 h-16 mx-auto mb-4 text-white/40" />
+          <h2 className="text-2xl font-bold mb-2">Preview Unavailable</h2>
+          <p className="text-white/60 mb-4">Sorry, this track doesn't have a preview available.</p>
+          <button
+            onClick={() => onSubmit()}
+            className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full transition"
+          >
+            Skip to Next Song
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto">
       <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 text-center">
@@ -65,15 +83,12 @@ export const GamePlay: React.FC<GamePlayProps> = ({
             <span>{formatTime(elapsedTime)}</span>
           </div>
 
-          {/* Hidden SpotifyPlayer for actual playback */}
-          <div className="hidden">
-            <SpotifyPlayer 
-              trackId={track.id}
-              onPlay={() => onPlayPause(true)}
-              onPause={() => onPlayPause(false)}
-              isPlaying={isPlaying}
-            />
-          </div>
+          <SpotifyPlayer 
+            trackId={track.id}
+            onPlay={() => onPlayPause(true)}
+            onPause={() => onPlayPause(false)}
+            isPlaying={isPlaying}
+          />
         </div>
 
         <div className="space-y-4">
