@@ -34,6 +34,13 @@ export const PlaylistSelection: React.FC<PlaylistSelectionProps> = ({ onPlaylist
     playlist.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const getPlaylistImage = (playlist: Playlist) => {
+    if (!playlist.images || playlist.images.length === 0 || !playlist.images[0]?.url) {
+      return null;
+    }
+    return playlist.images[0].url;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -62,29 +69,35 @@ export const PlaylistSelection: React.FC<PlaylistSelectionProps> = ({ onPlaylist
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPlaylists.map((playlist) => (
-            <button
-              key={playlist.id}
-              onClick={() => onPlaylistSelect(playlist)}
-              className="bg-white/10 backdrop-blur-sm rounded-lg p-6 hover:bg-white/20 transition transform hover:scale-105 text-left"
-            >
-              <div className="aspect-square mb-4 rounded-lg overflow-hidden bg-black/20">
-                {playlist.images[0] ? (
-                  <img
-                    src={playlist.images[0].url}
-                    alt={playlist.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Music className="w-12 h-12 text-white/40" />
-                  </div>
-                )}
-              </div>
-              <h3 className="font-bold text-xl mb-2">{playlist.name}</h3>
-              <p className="text-white/60">{playlist.tracks.total} tracks</p>
-            </button>
-          ))}
+          {filteredPlaylists.map((playlist) => {
+            const imageUrl = getPlaylistImage(playlist);
+            
+            return (
+              <button
+                key={playlist.id}
+                onClick={() => onPlaylistSelect(playlist)}
+                className="bg-white/10 backdrop-blur-sm rounded-lg p-6 hover:bg-white/20 transition transform hover:scale-105 text-left"
+              >
+                <div className="aspect-square mb-4 rounded-lg overflow-hidden bg-black/20">
+                  {imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt={playlist.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Music className="w-12 h-12 text-white/40" />
+                    </div>
+                  )}
+                </div>
+                <h3 className="font-bold text-xl mb-2 line-clamp-1">{playlist.name}</h3>
+                <p className="text-white/60">
+                  {playlist.tracks?.total ?? 0} tracks
+                </p>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
