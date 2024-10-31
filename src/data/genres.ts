@@ -23,5 +23,12 @@ export const genres = [
     id: '37i9dQZF1DX18jTM2l2fJY',
     name: '2020s Pop Hits',
     playlistId: '37i9dQZF1DX18jTM2l2fJY'
-  }
+  },
+  {
+    id : '5zDTMTesxw4Sz83gDwvTXX',
+   name : '1983',
+  playlistId : '5zDTMTesxw4Sz83gDwvTXX'
+}
+  
+
 ];
