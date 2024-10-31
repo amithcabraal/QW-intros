@@ -1,5 +1,5 @@
 import React from 'react';
-import { SkipForward, Check, X, Music2, Share2 } from 'lucide-react';
+import { SkipForward, Check, X, Music2, Share2, ExternalLink } from 'lucide-react';
 import { SpotifyTrack } from '../types/game';
 import { calculateSimilarity } from '../utils/stringMatch';
 
@@ -11,6 +11,7 @@ interface RevealScreenProps {
   isArtistCorrect: boolean;
   score: number;
   onNextSong: () => void;
+  elapsedTime: number;
 }
 
 export const RevealScreen: React.FC<RevealScreenProps> = ({ 
@@ -20,7 +21,8 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
   isCorrect,
   isArtistCorrect,
   score, 
-  onNextSong 
+  onNextSong,
+  elapsedTime
 }) => {
   const titleSimilarity = calculateSimilarity(userAnswer, track.name);
   const artistSimilarity = calculateSimilarity(userArtistAnswer, track.artists[0].name);
@@ -58,11 +60,21 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
     <div className="max-w-2xl mx-auto">
       <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8">
         <div className="relative">
-          <img
-            src={track.album.images[0].url}
-            alt={track.name}
-            className="w-48 h-48 mx-auto rounded-lg shadow-lg ring-4 ring-white/10"
-          />
+          <a 
+            href={`https://open.spotify.com/track/${track.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block relative group"
+          >
+            <img
+              src={track.album.images[0].url}
+              alt={track.name}
+              className="w-48 h-48 mx-auto rounded-lg shadow-lg ring-4 ring-white/10 transition-transform group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+              <ExternalLink className="w-8 h-8 text-white" />
+            </div>
+          </a>
           <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full">
             <Music2 className="w-6 h-6 text-green-400" />
           </div>
