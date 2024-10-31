@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Music, LogOut } from 'lucide-react';
+import { Music, LogOut, Home } from 'lucide-react';
 import { fetchPlaylistTracks } from '../utils/spotify';
 import { GenreSelection } from './GenreSelection';
 import { GamePlay } from './GamePlay';
@@ -134,28 +134,47 @@ export const GameRoom = () => {
     }
   };
 
+  const handleReturnToGenres = () => {
+    setGameState(prev => ({
+      ...prev,
+      gameStatus: 'selecting',
+      score: 0
+    }));
+    setTracks([]);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-800 text-white">
       <div className="max-w-6xl mx-auto p-8">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-3">
-            <Music className="w-10 h-10 text-green-400" />
-            <h1 className="text-3xl font-bold">Beat the Intro</h1>
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <div className="flex items-center gap-3">
+              <Music className="w-10 h-10 text-green-400" />
+              <h1 className="text-3xl font-bold">Beat the Intro</h1>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            {gameState.gameStatus !== 'selecting' && (
+
+          {gameState.gameStatus !== 'selecting' && (
+            <div className="flex items-center justify-between">
               <div className="text-xl font-bold">
                 Score: {gameState.score}
               </div>
-            )}
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 transition"
-            >
-              <LogOut size={20} />
-              Logout
-            </button>
-          </div>
+              <button
+                onClick={handleReturnToGenres}
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 transition"
+              >
+                <Home size={20} />
+                Return to Genres
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 transition"
+              >
+                <LogOut size={20} />
+                Logout
+              </button>
+            </div>
+          )}
         </div>
 
         {gameState.gameStatus === 'selecting' && (
