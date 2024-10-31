@@ -64,6 +64,16 @@ export const GamePlay: React.FC<GamePlayProps> = ({
             <Timer className="w-6 h-6" />
             <span>{formatTime(elapsedTime)}</span>
           </div>
+
+          {/* Hidden SpotifyPlayer for actual playback */}
+          <div className="hidden">
+            <SpotifyPlayer 
+              trackId={track.id}
+              onPlay={() => onPlayPause(true)}
+              onPause={() => onPlayPause(false)}
+              isPlaying={isPlaying}
+            />
+          </div>
         </div>
 
         <div className="space-y-4">
