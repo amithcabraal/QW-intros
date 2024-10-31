@@ -1,5 +1,5 @@
 import React from 'react';
-import { SkipForward, Check, X, Music2 } from 'lucide-react';
+import { SkipForward, Check, X, Music2, Share2 } from 'lucide-react';
 import { SpotifyTrack } from '../types/game';
 import { calculateSimilarity } from '../utils/stringMatch';
 
@@ -35,6 +35,23 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
     if (similarity >= 0.8) return '🎯';
     if (similarity >= 0.6) return '👍';
     return '❌';
+  };
+
+  const handleShare = async () => {
+    const shareText = `🎵 Beat the Intro\n\nSong: ${track.name}\nArtist: ${track.artists[0].name}\n\nMy Score: ${score} points\n${isCorrect ? '✅' : '❌'} Title: ${userAnswer}\n${isArtistCorrect ? '✅' : '❌'} Artist: ${userArtistAnswer}\n\nPlay now at https://qw-intros.netlify.app`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          text: shareText
+        });
+      } catch (error) {
+        console.error('Error sharing:', error);
+      }
+    } else {
+      await navigator.clipboard.writeText(shareText);
+      alert('Result copied to clipboard!');
+    }
   };
 
   return (
@@ -88,13 +105,23 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
               ) : null}
             </p>
 
-            <button
-              onClick={onNextSong}
-              className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full inline-flex items-center gap-2 transition transform hover:scale-105"
-            >
-              <SkipForward size={20} />
-              Next Song
-            </button>
+            <div className="flex items-center justify-center gap-4">
+              <button
+                onClick={handleShare}
+                className="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-8 rounded-full inline-flex items-center gap-2 transition transform hover:scale-105"
+              >
+                <Share2 size={20} />
+                Share Result
+              </button>
+
+              <button
+                onClick={onNextSong}
+                className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full inline-flex items-center gap-2 transition transform hover:scale-105"
+              >
+                <SkipForward size={20} />
+                Next Song
+              </button>
+            </div>
           </div>
         </div>
       </div>
