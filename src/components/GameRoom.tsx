@@ -9,12 +9,16 @@ import { genres } from '../data/genres';
 import { areSimilar } from '../utils/stringMatch';
 import type { Genre, GameState, SpotifyTrack } from '../types/game';
 
-export const GameRoom = () => {
+interface GameRoomProps {
+  initialTrackId?: string | null;
+}
+
+export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
   const navigate = useNavigate();
   const [gameState, setGameState] = useState<GameState>({
     currentTrack: null,
     score: 0,
-    gameStatus: 'selecting',
+    gameStatus: initialTrackId ? 'playing' : 'selecting',
     timeLeft: 30
   });
   const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
@@ -30,6 +34,32 @@ export const GameRoom = () => {
       navigate('/login');
     }
   }, [navigate]);
+
+  useEffect(() => {
+    if (initialTrackId) {
+      const fetchInitialTrack = async () => {
+        try {
+          const response = await fetch(`https://api.spotify.com/v1/tracks/${initialTrackId}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`,
+            }
+          });
+          if (!response.ok) throw new Error('Failed to fetch track');
+          const track = await response.json();
+          setGameState(prev => ({
+            ...prev,
+            currentTrack: track,
+            gameStatus: 'playing'
+          }));
+          setTracks([track]);
+        } catch (error) {
+          console.error('Failed to fetch initial track:', error);
+          setGameState(prev => ({ ...prev, gameStatus: 'selecting' }));
+        }
+      };
+      fetchInitialTrack();
+    }
+  }, [initialTrackId]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -101,7 +131,13 @@ export const GameRoom = () => {
   };
 
   const handleNextSong = () => {
-    startGame(tracks);
+    if (initialTrackId) {
+      // If we came from a shared link, go back to genre selection
+      setGameState(prev => ({ ...prev, gameStatus: 'selecting' }));
+      setTracks([]);
+    } else {
+      startGame(tracks);
+    }
     setAnswer('');
     setArtistAnswer('');
   };
@@ -208,6 +244,7 @@ export const GameRoom = () => {
             isArtistCorrect={isCorrectArtist()}
             score={gameState.score}
             onNextSong={handleNextSong}
+            elapsedTime={elapsedTime}
           />
         )}
       </div>
