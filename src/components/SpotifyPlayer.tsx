@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface SpotifyPlayerProps {
   trackId: string;
@@ -13,8 +13,7 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
   onPause,
   isPlaying
 }) => {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     const fetchTrackPreview = async () => {
@@ -24,10 +23,17 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
             'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
           }
         });
-        const data = await response.json();
-        setPreviewUrl(data.preview_url);
+        
+        if (!response.ok) throw new Error('Failed to fetch track');
+        
+        const track = await response.json();
+        if (audioRef.current) {
+          audioRef.current.src = track.preview_url;
+          audioRef.current.load();
+        }
       } catch (error) {
-        console.error('Error fetching track preview:', error);
+        console.error('Error fetching track:', error);
+        onPause();
       }
     };
 
@@ -35,30 +41,32 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
   }, [trackId]);
 
   useEffect(() => {
-    if (!audioRef.current || !previewUrl) return;
+    if (!audioRef.current) return;
 
     if (isPlaying) {
-      audioRef.current.play().catch(error => {
-        console.error('Playback failed:', error);
-        onPause();
-      });
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error('Playback failed:', error);
+          onPause();
+        });
+      }
     } else {
       audioRef.current.pause();
     }
-  }, [isPlaying, previewUrl, onPause]);
+  }, [isPlaying]);
 
   useEffect(() => {
-    if (!audioRef.current || !previewUrl) return;
-    audioRef.current.src = previewUrl;
-    audioRef.current.load();
-  }, [previewUrl]);
+    const audio = audioRef.current;
+    if (!audio) return;
 
-  return (
-    <audio
-      ref={audioRef}
-      onEnded={() => onPause()}
-      onError={() => onPause()}
-      preload="auto"
-    />
-  );
-};
+    const handleEnded = () => {
+      audio.currentTime = 0;
+      onPause();
+    };
+
+    audio.addEventListener('ended', handleEnded);
+    return () => audio.removeEventListener('ended', handleEnded);
+  }, [onPause]);
+
+  return
