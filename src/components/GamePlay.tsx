@@ -65,12 +65,15 @@ export const GamePlay: React.FC<GamePlayProps> = ({
             <span>{formatTime(elapsedTime)}</span>
           </div>
 
-          <SpotifyPlayer 
-            trackId={track.id}
-            onPlay={() => onPlayPause(true)}
-            onPause={() => onPlayPause(false)}
-            isPlaying={isPlaying}
-          />
+          {/* Hidden SpotifyPlayer for actual playback */}
+          <div className="hidden">
+            <SpotifyPlayer 
+              trackId={track.id}
+              onPlay={() => onPlayPause(true)}
+              onPause={() => onPlayPause(false)}
+              isPlaying={isPlaying}
+            />
+          </div>
         </div>
 
         <div className="space-y-4">
