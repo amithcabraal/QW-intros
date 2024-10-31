@@ -38,21 +38,21 @@ export const GamePlay: React.FC<GamePlayProps> = ({
   return (
     <div className="max-w-2xl mx-auto">
       <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 text-center">
-        <div className="flex flex-col items-center justify-center gap-4 mb-6">
+        <div className="flex flex-col items-center justify-center gap-6 mb-8">
           <div className="relative">
             <button
               onClick={() => onPlayPause(!isPlaying)}
-              className={`w-32 h-32 rounded-full bg-white/5 flex items-center justify-center transition-all duration-500 hover:bg-white/10 ${
+              className={`w-40 h-40 rounded-full bg-white/5 flex items-center justify-center transition-all duration-500 hover:bg-white/10 ${
                 isPlaying ? 'scale-110' : ''
               }`}
             >
               {isPlaying ? (
-                <Pause className="w-16 h-16 text-green-400" />
+                <Pause className="w-20 h-20 text-green-400" />
               ) : (
-                <Play className="w-16 h-16 text-green-400" />
+                <Play className="w-20 h-20 text-green-400" />
               )}
               {isPlaying && (
-                <div className="absolute w-32 h-32">
+                <div className="absolute w-40 h-40">
                   <div className="absolute inset-0 rounded-full border-2 border-green-400/30 animate-ping" />
                   <div className="absolute inset-0 rounded-full border-2 border-green-400/20" />
                 </div>
@@ -60,17 +60,10 @@ export const GamePlay: React.FC<GamePlayProps> = ({
             </button>
           </div>
           
-          <div className="flex items-center gap-2 text-xl font-mono">
-            <Timer className="w-5 h-5" />
+          <div className="flex items-center gap-3 text-3xl font-mono bg-white/5 rounded-full px-6 py-3">
+            <Timer className="w-6 h-6" />
             <span>{formatTime(elapsedTime)}</span>
           </div>
-
-          <SpotifyPlayer 
-            trackId={track.id}
-            onPlay={() => onPlayPause(true)}
-            onPause={() => onPlayPause(false)}
-            isPlaying={isPlaying}
-          />
         </div>
 
         <div className="space-y-4">
