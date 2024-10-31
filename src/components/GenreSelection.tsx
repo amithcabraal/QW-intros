@@ -13,6 +13,7 @@ export const GenreSelection: React.FC<GenreSelectionProps> = ({ onGenreSelect, g
   const [userPlaylists, setUserPlaylists] = useState<Playlist[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadPlaylists();
@@ -20,13 +21,16 @@ export const GenreSelection: React.FC<GenreSelectionProps> = ({ onGenreSelect, g
 
   const loadPlaylists = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const data = await fetchPlaylists();
-      if (data?.items) {
-        setUserPlaylists(data.items);
+      if (!data) {
+        throw new Error('Failed to load playlists');
       }
+      setUserPlaylists(data.items || []);
     } catch (error) {
       console.error('Failed to load playlists:', error);
+      setError('Unable to load playlists. Please try again later.');
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +93,17 @@ export const GenreSelection: React.FC<GenreSelectionProps> = ({ onGenreSelect, g
           />
         </div>
 
-        {isLoading ? (
+        {error ? (
+          <div className="text-center py-8">
+            <p className="text-red-400">{error}</p>
+            <button
+              onClick={loadPlaylists}
+              className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader className="w-8 h-8 animate-spin text-green-400" />
           </div>
