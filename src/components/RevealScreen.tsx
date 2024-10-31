@@ -38,7 +38,7 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
   };
 
   const handleShare = async () => {
-    const shareText = `🎵 Beat the Intro\n\nSong: ${track.name}\nArtist: ${track.artists[0].name}\n\nMy Score: ${score} points\n${isCorrect ? '✅' : '❌'} Title: ${userAnswer}\n${isArtistCorrect ? '✅' : '❌'} Artist: ${userArtistAnswer}\n\nPlay now at https://qw-intros.netlify.app`;
+    const shareText = `🎵 Try this Beat the Intro!\n\n${isCorrect ? `I got it in ${Math.round(elapsedTime)} seconds!` : "I couldn't get this one!"}\n\nCan you beat me? Try now: https://qw-intros.netlify.app?track=${track.id}`;
 
     if (navigator.share) {
       try {
