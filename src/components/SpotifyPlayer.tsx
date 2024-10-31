@@ -1,110 +1,156 @@
-import React from 'react';
-import { Music, Timer, Pause, Play } from 'lucide-react';
-import { SpotifyTrack } from '../types/game';
-import { SpotifyPlayer } from './SpotifyPlayer';
+import React, { useEffect, useState } from 'react';
 
-interface GamePlayProps {
-  track: SpotifyTrack;
-  answer: string;
-  artistAnswer: string;
-  onAnswerChange: (value: string) => void;
-  onArtistAnswerChange: (value: string) => void;
-  onSubmit: () => void;
-  elapsedTime: number;
+interface SpotifyPlayerProps {
+  trackId: string;
+  onPlay: () => void;
+  onPause: () => void;
   isPlaying: boolean;
-  hasStarted: boolean;
-  onPlayPause: (playing: boolean) => void;
 }
 
-export const GamePlay: React.FC<GamePlayProps> = ({
-  track,
-  answer,
-  artistAnswer,
-  onAnswerChange,
-  onArtistAnswerChange,
-  onSubmit,
-  elapsedTime,
-  isPlaying,
-  hasStarted,
-  onPlayPause
+declare global {
+  interface Window {
+    onSpotifyWebPlaybackSDKReady: () => void;
+    Spotify: any;
+  }
+}
+
+export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({ 
+  trackId, 
+  onPlay, 
+  onPause,
+  isPlaying
 }) => {
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    const centisecs = Math.floor((seconds * 100) % 100);
-    return `${mins}:${secs.toString().padStart(2, '0')}.${centisecs.toString().padStart(2, '0')}`;
-  };
+  const [player, setPlayer] = useState<any>(null);
+  const [deviceId, setDeviceId] = useState<string>('');
+  const [isReady, setIsReady] = useState(false);
 
-  return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 text-center">
-        <div className="flex flex-col items-center justify-center gap-6 mb-8">
-          <div className="relative">
-            <button
-              onClick={() => onPlayPause(!isPlaying)}
-              className={`w-40 h-40 rounded-full bg-white/5 flex items-center justify-center transition-all duration-500 hover:bg-white/10 ${
-                isPlaying ? 'scale-110' : ''
-              }`}
-            >
-              {isPlaying ? (
-                <Pause className="w-20 h-20 text-green-400" />
-              ) : (
-                <Play className="w-20 h-20 text-green-400" />
-              )}
-              {isPlaying && (
-                <div className="absolute w-40 h-40">
-                  <div className="absolute inset-0 rounded-full border-2 border-green-400/30 animate-ping" />
-                  <div className="absolute inset-0 rounded-full border-2 border-green-400/20" />
-                </div>
-              )}
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-3 text-3xl font-mono bg-white/5 rounded-full px-6 py-3">
-            <Timer className="w-6 h-6" />
-            <span>{formatTime(elapsedTime)}</span>
-          </div>
+  useEffect(() => {
+    if (!window.Spotify) {
+      const script = document.createElement("script");
+      script.src = "https://sdk.scdn.co/spotify-player.js";
+      script.async = true;
+      document.body.appendChild(script);
 
-          <SpotifyPlayer 
-            trackId={track.id}
-            onPlay={() => onPlayPause(true)}
-            onPause={() => onPlayPause(false)}
-            isPlaying={isPlaying}
-          />
-        </div>
+      window.onSpotifyWebPlaybackSDKReady = () => {
+        const player = new window.Spotify.Player({
+          name: 'Beat the Intro Player',
+          getOAuthToken: cb => { cb(localStorage.getItem('spotify_token') || ''); },
+          volume: 0.5
+        });
 
-        <div className="space-y-4">
-          <div>
-            <input
-              type="text"
-              placeholder="Song title..."
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-center text-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-              value={answer}
-              onChange={(e) => onAnswerChange(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && onSubmit()}
-              autoFocus
-            />
-          </div>
+        player.addListener('ready', ({ device_id }: { device_id: string }) => {
+          console.log('Ready with Device ID', device_id);
+          setDeviceId(device_id);
+          setPlayer(player);
+          setIsReady(true);
+        });
 
-          <div>
-            <input
-              type="text"
-              placeholder="Artist name..."
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-center text-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-              value={artistAnswer}
-              onChange={(e) => onArtistAnswerChange(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && onSubmit()}
-            />
-          </div>
-        </div>
+        player.addListener('not_ready', ({ device_id }: { device_id: string }) => {
+          console.log('Device ID has gone offline', device_id);
+          setIsReady(false);
+        });
 
-        <button
-          onClick={onSubmit}
-          className="mt-6 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full flex items-center gap-2 mx-auto transition"
-        >
-          Submit Guess
-        </button>
-      </div>
-    </div>
-  );
+        player.addListener('initialization_error', ({ message }: { message: string }) => {
+          console.error('Failed to initialize', message);
+        });
+
+        player.addListener('authentication_error', ({ message }: { message: string }) => {
+          console.error('Failed to authenticate', message);
+          localStorage.removeItem('spotify_token');
+          window.location.href = '/login';
+        });
+
+        player.addListener('account_error', ({ message }: { message: string }) => {
+          console.error('Failed to validate Spotify account', message);
+        });
+
+        player.addListener('playback_error', ({ message }: { message: string }) => {
+          console.error('Failed to perform playback', message);
+        });
+
+        player.connect();
+      };
+    }
+
+    return () => {
+      if (player) {
+        player.disconnect();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const setupPlayback = async () => {
+      if (!isReady || !deviceId) return;
+
+      try {
+        // Transfer playback to our player
+        await fetch('https://api.spotify.com/v1/me/player', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
+          },
+          body: JSON.stringify({
+            device_ids: [deviceId],
+            play: false
+          })
+        });
+      } catch (error) {
+        console.error('Error setting up playback:', error);
+      }
+    };
+
+    setupPlayback();
+  }, [deviceId, isReady]);
+
+  useEffect(() => {
+    const handlePlayback = async () => {
+      if (!isReady || !deviceId || !trackId) return;
+
+      try {
+        if (isPlaying) {
+          await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
+            },
+            body: JSON.stringify({
+              uris: [`spotify:track:${trackId}`],
+              position_ms: 0
+            })
+          });
+        } else if (player) {
+          await player.pause();
+        }
+      } catch (error) {
+        console.error('Error controlling playback:', error);
+        onPause();
+      }
+    };
+
+    handlePlayback();
+  }, [trackId, isPlaying, deviceId, isReady, player, onPause]);
+
+  // State change listener
+  useEffect(() => {
+    if (!player) return;
+
+    const stateListener = ({ position, duration, paused }: any) => {
+      if (position === 0 && !paused) {
+        onPlay();
+      } else if (paused) {
+        onPause();
+      }
+    };
+
+    player.addListener('player_state_changed', stateListener);
+
+    return () => {
+      player.removeListener('player_state_changed', stateListener);
+    };
+  }, [player, onPlay, onPause]);
+
+  return null; // Web Playback SDK doesn't need a visual component
 };
