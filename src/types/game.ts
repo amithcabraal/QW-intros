@@ -1,7 +1,11 @@
+import { LucideIcon } from 'lucide-react';
+
 export interface Genre {
   id: string;
   name: string;
   playlistId: string;
+  description: string;
+  icon: LucideIcon;
 }
 
 export interface GameState {
@@ -9,6 +13,7 @@ export interface GameState {
   score: number;
   gameStatus: 'selecting' | 'playing' | 'revealed';
   timeLeft: number;
+  playedTracks: Set<string>;
 }
 
 export interface SpotifyTrack {
