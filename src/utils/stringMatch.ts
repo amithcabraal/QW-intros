@@ -19,10 +19,12 @@ export function levenshteinDistance(a: string, b: string): number {
   return matrix[b.length][a.length];
 }
 
-// Clean title by removing brackets and extra spaces
+// Clean title by removing brackets, extra spaces, and version information
 export function cleanTitle(title: string): string {
   return title
     .toLowerCase()
+    // Remove content after last hyphen if it contains version-related keywords
+    .replace(/\s-\s.*?(version|edit|remix|remaster|deluxe|club|radio|extended|single|album|live).*?$/i, '')
     .replace(/\(.*?\)|\[.*?\]|{.*?}/g, '') // Remove content in brackets
     .replace(/[^\w\s]/g, '') // Remove special characters
     .replace(/\s+/g, ' ') // Replace multiple spaces with single space
