@@ -1,5 +1,5 @@
 const CLIENT_ID = 'aec280afedc14dbcb5f99bc29047df8e';
-const REDIRECT_URI = 'https://qw-intros.netlify.app/callback';
+const REDIRECT_URI = `${window.location.origin}/callback`;
 const SCOPES = [
   'user-read-private',
   'user-read-email',
