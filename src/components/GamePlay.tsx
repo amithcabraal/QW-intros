@@ -2,6 +2,7 @@ import React from 'react';
 import { Music, Timer, Pause, Play } from 'lucide-react';
 import { SpotifyTrack } from '../types/game';
 import { SpotifyPlayer } from './SpotifyPlayer';
+import { SpotifyPreviewPlayer } from './SpotifyPreviewPlayer';
 
 interface GamePlayProps {
   track: SpotifyTrack;
@@ -14,6 +15,7 @@ interface GamePlayProps {
   isPlaying: boolean;
   hasStarted: boolean;
   onPlayPause: (playing: boolean) => void;
+  isPremium?: boolean;
 }
 
 export const GamePlay: React.FC<GamePlayProps> = ({
@@ -26,7 +28,8 @@ export const GamePlay: React.FC<GamePlayProps> = ({
   elapsedTime,
   isPlaying,
   hasStarted,
-  onPlayPause
+  onPlayPause,
+  isPremium = false
 }) => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -65,14 +68,23 @@ export const GamePlay: React.FC<GamePlayProps> = ({
             <span>{formatTime(elapsedTime)}</span>
           </div>
 
-          {/* Hidden SpotifyPlayer for actual playback */}
+          {/* Hidden player component */}
           <div className="sr-only">
-            <SpotifyPlayer 
-              trackId={track.id}
-              onPlay={() => onPlayPause(true)}
-              onPause={() => onPlayPause(false)}
-              isPlaying={isPlaying}
-            />
+            {isPremium ? (
+              <SpotifyPlayer 
+                trackId={track.id}
+                onPlay={() => onPlayPause(true)}
+                onPause={() => onPlayPause(false)}
+                isPlaying={isPlaying}
+              />
+            ) : (
+              <SpotifyPreviewPlayer
+                previewUrl={track.preview_url}
+                onPlay={() => onPlayPause(true)}
+                onPause={() => onPlayPause(false)}
+                isPlaying={isPlaying}
+              />
+            )}
           </div>
         </div>
 
