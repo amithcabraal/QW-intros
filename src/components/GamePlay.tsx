@@ -28,18 +28,11 @@ export const GamePlay: React.FC<GamePlayProps> = ({
   hasStarted,
   onPlayPause
 }) => {
-  const [isReady, setIsReady] = React.useState(false);
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     const centisecs = Math.floor((seconds * 100) % 100);
     return `${mins}:${secs.toString().padStart(2, '0')}.${centisecs.toString().padStart(2, '0')}`;
-  };
-
-  const handlePlayPause = (playing: boolean) => {
-    if (!isReady) return;
-    onPlayPause(playing);
   };
 
   return (
@@ -48,29 +41,23 @@ export const GamePlay: React.FC<GamePlayProps> = ({
         <div className="flex flex-col items-center justify-center gap-6 mb-8">
           <div className="relative">
             <button
-              onClick={() => handlePlayPause(!isPlaying)}
-              className={`w-40 h-40 rounded-full transition-all duration-500 ${
-                isReady ? 'bg-white/5 hover:bg-white/10' : 'bg-white/5 cursor-not-allowed opacity-50'
-              } ${isPlaying ? 'scale-110' : ''}`}
-              disabled={!isReady}
+              onClick={() => onPlayPause(!isPlaying)}
+              className={`w-40 h-40 rounded-full bg-white/5 flex items-center justify-center transition-all duration-500 hover:bg-white/10 ${
+                isPlaying ? 'scale-110' : ''
+              }`}
             >
               {isPlaying ? (
                 <Pause className="w-20 h-20 text-green-400" />
               ) : (
                 <Play className="w-20 h-20 text-green-400" />
               )}
-              {isPlaying && isReady && (
+              {isPlaying && (
                 <div className="absolute w-40 h-40">
                   <div className="absolute inset-0 rounded-full border-2 border-green-400/30 animate-ping" />
                   <div className="absolute inset-0 rounded-full border-2 border-green-400/20" />
                 </div>
               )}
             </button>
-            {!isReady && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-green-400/20 border-t-green-400 rounded-full animate-spin"></div>
-              </div>
-            )}
           </div>
           
           <div className="flex items-center gap-3 text-3xl font-mono bg-white/5 rounded-full px-6 py-3">
@@ -78,13 +65,15 @@ export const GamePlay: React.FC<GamePlayProps> = ({
             <span>{formatTime(elapsedTime)}</span>
           </div>
 
-          <SpotifyPlayer 
-            trackId={track.id}
-            onPlay={() => handlePlayPause(true)}
-            onPause={() => handlePlayPause(false)}
-            isPlaying={isPlaying}
-            onReady={() => setIsReady(true)}
-          />
+          {/* Hidden SpotifyPlayer for actual playback */}
+          <div className="hidden">
+            <SpotifyPlayer 
+              trackId={track.id}
+              onPlay={() => onPlayPause(true)}
+              onPause={() => onPlayPause(false)}
+              isPlaying={isPlaying}
+            />
+          </div>
         </div>
 
         <div className="space-y-4">
