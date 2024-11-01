@@ -66,7 +66,7 @@ export const GamePlay: React.FC<GamePlayProps> = ({
           </div>
 
           {/* Hidden SpotifyPlayer for actual playback */}
-          <div>
+          <div className="sr-only">
             <SpotifyPlayer 
               trackId={track.id}
               onPlay={() => onPlayPause(true)}
