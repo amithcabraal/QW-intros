@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { Pause, Play } from 'lucide-react';
 
 interface SpotifyPlayerProps {
   trackId: string;
   onPlay: () => void;
   onPause: () => void;
   isPlaying: boolean;
-  onReady: () => void;
 }
 
 declare global {
@@ -19,13 +19,10 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
   trackId, 
   onPlay, 
   onPause,
-  isPlaying,
-  onReady
+  isPlaying
 }) => {
   const [player, setPlayer] = useState<any>(null);
   const [deviceId, setDeviceId] = useState<string>('');
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [currentTrackId, setCurrentTrackId] = useState<string>(trackId);
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -48,13 +45,6 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
         transferPlayback(device_id);
       });
 
-      player.addListener('player_state_changed', (state: any) => {
-        if (state) {
-          setIsInitialized(true);
-          onReady();
-        }
-      });
-
       player.connect();
     };
 
@@ -65,13 +55,6 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (trackId !== currentTrackId) {
-      setCurrentTrackId(trackId);
-      preloadTrack(trackId);
-    }
-  }, [trackId]);
 
   const transferPlayback = async (deviceId: string) => {
     try {
@@ -86,47 +69,28 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
           play: false
         })
       });
-      
-      await preloadTrack(trackId);
     } catch (error) {
       console.error('Error transferring playback:', error);
     }
   };
 
-  const preloadTrack = async (trackId: string) => {
-    if (!deviceId) return;
-
-    try {
-      await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
-        },
-        body: JSON.stringify({
-          uris: [`spotify:track:${trackId}`],
-          position_ms: 0
-        })
-      });
-
-      // Immediately pause after loading
-      if (player) {
-        await player.pause();
-        setIsInitialized(true);
-        onReady();
-      }
-    } catch (error) {
-      console.error('Error preloading track:', error);
-    }
-  };
-
   useEffect(() => {
     const handlePlayback = async () => {
-      if (!player || !isInitialized) return;
+      if (!player || !deviceId || !trackId) return;
 
       try {
         if (isPlaying) {
-          await player.resume();
+          await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
+            },
+            body: JSON.stringify({
+              uris: [`spotify:track:${trackId}`],
+              position_ms: 0
+            })
+          });
         } else {
           await player.pause();
         }
@@ -136,7 +100,24 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
     };
 
     handlePlayback();
-  }, [isPlaying, player, isInitialized]);
+  }, [trackId, isPlaying, player, deviceId]);
 
-  return null;
+  const togglePlayPause = async () => {
+    if (!player) return;
+
+    if (isPlaying) {
+      onPause();
+    } else {
+      onPlay();
+    }
+  };
+
+  return (
+    <button
+      onClick={togglePlayPause}
+      className="bg-green-500 hover:bg-green-600 w-12 h-12 rounded-full flex items-center justify-center transition"
+    >
+      {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+    </button>
+  );
 };
