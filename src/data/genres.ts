@@ -1,5 +1,6 @@
 import { ListMusic, Music, Mic2, Radio, Headphones, Music2 } from 'lucide-react';
 
+
 export const genres = [
   {
     id: '0SdFPQxsbteNQxx8pVoBiE',
@@ -40,7 +41,7 @@ export const genres = [
     id: '37i9dQZF1DX5Ejj0EkURtP',
     name: 'All Out 2010s',
     playlistId: '37i9dQZF1DX5Ejj0EkURtP',
-    description: 'Prove your modern music mastery',
+    description: 'Prove your modern music expertise',
     icon: ListMusic
   }
 ];
