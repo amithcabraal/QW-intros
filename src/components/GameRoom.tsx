@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Music, LogOut, Home } from 'lucide-react';
+import { Music } from 'lucide-react';
 import { fetchPlaylistTracks, checkSpotifyPremium } from '../utils/spotify';
 import { GenreSelection } from './GenreSelection';
 import { PlaylistSelection } from './PlaylistSelection';
 import { GamePlay } from './GamePlay';
 import { RevealScreen } from './RevealScreen';
+import { Navigation } from './Navigation';
 import { genres } from '../data/genres';
 import { areSimilar } from '../utils/stringMatch';
+import { calculateScore } from '../utils/scoring';
 import type { Genre, GameState, SpotifyTrack } from '../types/game';
 import type { Playlist } from '../types/spotify';
 
@@ -21,13 +23,15 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
     currentTrack: null,
     score: 0,
     gameStatus: initialTrackId ? 'playing' : 'selecting',
-    timeLeft: 30
+    timeLeft: 30,
+    playedTracks: new Set()
   });
   const [showPlaylists, setShowPlaylists] = useState(false);
   const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
   const [answer, setAnswer] = useState('');
   const [artistAnswer, setArtistAnswer] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
@@ -98,24 +102,40 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
   }, [isPlaying, hasStarted]);
 
   const startGame = useCallback((availableTracks: SpotifyTrack[]) => {
-    if (availableTracks.length === 0) {
-      setError('No playable tracks found in this playlist. Try another one!');
-      setGameState(prev => ({ ...prev, gameStatus: 'selecting' }));
+    const unplayedTracks = availableTracks.filter(track => 
+      !gameState.playedTracks.has(track.id)
+    );
+
+    if (unplayedTracks.length === 0) {
+      if (availableTracks.length === 0) {
+        setError('No playable tracks found in this playlist. Try another one!');
+      } else {
+        // Reset played tracks if all have been played
+        setGameState(prev => ({ ...prev, playedTracks: new Set() }));
+        const randomTrack = availableTracks[Math.floor(Math.random() * availableTracks.length)];
+        startTrack(randomTrack);
+      }
       return;
     }
 
-    const randomTrack = availableTracks[Math.floor(Math.random() * availableTracks.length)];
+    const randomTrack = unplayedTracks[Math.floor(Math.random() * unplayedTracks.length)];
+    startTrack(randomTrack);
+  }, [gameState.playedTracks]);
+
+  const startTrack = (track: SpotifyTrack) => {
     setGameState(prev => ({
       ...prev,
-      currentTrack: randomTrack,
+      currentTrack: track,
       gameStatus: 'playing',
-      timeLeft: 30
+      timeLeft: 30,
+      playedTracks: new Set([...prev.playedTracks, track.id])
     }));
     setElapsedTime(0);
     setHasStarted(false);
     setIsPlaying(false);
+    setIsLoading(false);
     setError(null);
-  }, []);
+  };
 
   const handleGenreSelect = async (genre: Genre) => {
     try {
@@ -160,10 +180,14 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
   const handleAnswerSubmit = () => {
     setIsPlaying(false);
     setHasStarted(false);
+    const isCorrectTitle = isCorrectAnswer();
+    const isCorrectArtist = isCorrectArtist();
+    const points = calculateScore(isCorrectTitle, isCorrectArtist, elapsedTime);
+    
     setGameState(prev => ({
       ...prev,
       gameStatus: 'revealed',
-      score: isCorrectAnswer() ? prev.score + (isCorrectArtist() ? 2 : 1) : prev.score
+      score: prev.score + points
     }));
   };
 
@@ -189,9 +213,15 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
   };
 
   const handlePlayPause = (playing: boolean) => {
+    setIsLoading(true);
     setIsPlaying(playing);
     if (playing && !hasStarted) {
-      setHasStarted(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        setHasStarted(true);
+      }, 500);
+    } else {
+      setIsLoading(false);
     }
   };
 
@@ -216,19 +246,10 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
     }
   };
 
-  const handleReturnToGenres = () => {
-    setGameState(prev => ({
-      ...prev,
-      gameStatus: 'selecting',
-      score: 0
-    }));
-    setShowPlaylists(false);
-    setTracks([]);
-    setError(null);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-800 text-white">
+      <Navigation onLogout={handleLogout} />
+      
       <div className="max-w-6xl mx-auto p-8">
         <div className="space-y-4">
           <div className="flex items-center justify-center">
@@ -237,28 +258,6 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
               <h1 className="text-3xl font-bold">{isPremium ? 'Beat the Intro' : 'Name that Tune'}</h1>
             </div>
           </div>
-
-          {gameState.gameStatus !== 'selecting' && (
-            <div className="flex items-center justify-between">
-              <div className="text-xl font-bold">
-                Score: {gameState.score}
-              </div>
-              <button
-                onClick={handleReturnToGenres}
-                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 transition"
-              >
-                <Home size={20} />
-                Return to Genres
-              </button>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-full px-4 py-2 transition"
-              >
-                <LogOut size={20} />
-                Logout
-              </button>
-            </div>
-          )}
 
           {error && (
             <div className="bg-red-500/20 border border-red-500/50 text-white px-4 py-3 rounded-lg">
@@ -292,6 +291,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
             onSubmit={handleAnswerSubmit}
             elapsedTime={elapsedTime}
             isPlaying={isPlaying}
+            isLoading={isLoading}
             hasStarted={hasStarted}
             onPlayPause={handlePlayPause}
             isPremium={isPremium}
