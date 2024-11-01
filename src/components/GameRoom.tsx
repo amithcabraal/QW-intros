@@ -6,7 +6,6 @@ import { GenreSelection } from './GenreSelection';
 import { PlaylistSelection } from './PlaylistSelection';
 import { GamePlay } from './GamePlay';
 import { RevealScreen } from './RevealScreen';
-import { Navigation } from './Navigation';
 import { genres } from '../data/genres';
 import { areSimilar } from '../utils/stringMatch';
 import { calculateScore } from '../utils/scoring';
@@ -178,10 +177,12 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
   };
 
   const handleAnswerSubmit = () => {
+    if (!gameState.currentTrack) return;
+    
     setIsPlaying(false);
     setHasStarted(false);
     const isCorrectTitle = isCorrectAnswer();
-    const isCorrectArtist = isCorrectArtist();
+    const isCorrectArtist = isCorrectArtistAnswer();
     const points = calculateScore(isCorrectTitle, isCorrectArtist, elapsedTime);
     
     setGameState(prev => ({
@@ -196,7 +197,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
     return areSimilar(answer, gameState.currentTrack.name);
   };
 
-  const isCorrectArtist = () => {
+  const isCorrectArtistAnswer = () => {
     if (!gameState.currentTrack) return false;
     return areSimilar(artistAnswer, gameState.currentTrack.artists[0].name);
   };
@@ -225,31 +226,8 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
     }
   };
 
-  const handleLogout = async () => {
-    setIsPlaying(false);
-    try {
-      const token = localStorage.getItem('spotify_token');
-      if (token) {
-        await fetch('https://accounts.spotify.com/api/token/revoke', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error revoking token:', error);
-    } finally {
-      localStorage.removeItem('spotify_token');
-      navigate('/login');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-800 text-white">
-      <Navigation onLogout={handleLogout} />
-      
       <div className="max-w-6xl mx-auto p-8">
         <div className="space-y-4">
           <div className="flex items-center justify-center">
@@ -304,7 +282,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
             userAnswer={answer}
             userArtistAnswer={artistAnswer}
             isCorrect={isCorrectAnswer()}
-            isArtistCorrect={isCorrectArtist()}
+            isArtistCorrect={isCorrectArtistAnswer()}
             score={gameState.score}
             onNextSong={handleNextSong}
             elapsedTime={elapsedTime}
