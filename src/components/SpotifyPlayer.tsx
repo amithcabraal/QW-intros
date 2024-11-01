@@ -23,6 +23,7 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
 }) => {
   const [player, setPlayer] = useState<any>(null);
   const [deviceId, setDeviceId] = useState<string>('');
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -42,7 +43,24 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
         console.log('Ready with Device ID', device_id);
         setDeviceId(device_id);
         setPlayer(player);
+        setIsReady(true);
         transferPlayback(device_id);
+      });
+
+      player.addListener('not_ready', () => {
+        setIsReady(false);
+      });
+
+      player.addListener('initialization_error', ({ message }: { message: string }) => {
+        console.error('Failed to initialize:', message);
+      });
+
+      player.addListener('authentication_error', ({ message }: { message: string }) => {
+        console.error('Failed to authenticate:', message);
+      });
+
+      player.addListener('account_error', ({ message }: { message: string }) => {
+        console.error('Failed to validate Spotify account:', message);
       });
 
       player.connect();
@@ -58,7 +76,7 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
 
   const transferPlayback = async (deviceId: string) => {
     try {
-      await fetch('https://api.spotify.com/v1/me/player', {
+      const response = await fetch('https://api.spotify.com/v1/me/player', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -69,53 +87,72 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
           play: false
         })
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
     } catch (error) {
       console.error('Error transferring playback:', error);
     }
   };
 
-  useEffect(() => {
-    const handlePlayback = async () => {
-      if (!player || !deviceId || !trackId) return;
+  const startPlayback = async () => {
+    if (!isReady || !deviceId || !trackId) return;
 
-      try {
-        if (isPlaying) {
-          await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
-            },
-            body: JSON.stringify({
-              uris: [`spotify:track:${trackId}`],
-              position_ms: 0
-            })
-          });
-        } else {
-          await player.pause();
-        }
-      } catch (error) {
-        console.error('Error controlling playback:', error);
+    try {
+      const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
+        },
+        body: JSON.stringify({
+          uris: [`spotify:track:${trackId}`],
+          position_ms: 0
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
 
-    handlePlayback();
-  }, [trackId, isPlaying, player, deviceId]);
-
-  const togglePlayPause = async () => {
-    if (!player) return;
-
-    if (isPlaying) {
-      onPause();
-    } else {
       onPlay();
+    } catch (error) {
+      console.error('Error starting playback:', error);
+    }
+  };
+
+  const stopPlayback = async () => {
+    if (!player) return;
+    try {
+      await player.pause();
+      onPause();
+    } catch (error) {
+      console.error('Error stopping playback:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (!isPlaying) {
+      stopPlayback();
+    }
+  }, [isPlaying]);
+
+  const handleClick = async (event: React.MouseEvent) => {
+    event.preventDefault(); // Prevent any default behavior
+    
+    if (isPlaying) {
+      await stopPlayback();
+    } else {
+      await startPlayback();
     }
   };
 
   return (
     <button
-      onClick={togglePlayPause}
-      className="bg-green-500 hover:bg-green-600 w-12 h-12 rounded-full flex items-center justify-center transition"
+      onClick={handleClick}
+      disabled={!isReady}
+      className={`bg-green-500 hover:bg-green-600 w-12 h-12 rounded-full flex items-center justify-center transition ${!isReady ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       {isPlaying ? <Pause size={24} /> : <Play size={24} />}
     </button>
