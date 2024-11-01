@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Pause, Play } from 'lucide-react';
 
 interface SpotifyPlayerProps {
@@ -23,6 +23,7 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
 }) => {
   const [player, setPlayer] = useState<any>(null);
   const [deviceId, setDeviceId] = useState<string>('');
+  const playbackStarted = useRef(false);
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -80,17 +81,22 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
 
       try {
         if (isPlaying) {
-          await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
-            },
-            body: JSON.stringify({
-              uris: [`spotify:track:${trackId}`],
-              position_ms: 0
-            })
-          });
+          if (!playbackStarted.current) {
+            await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
+              },
+              body: JSON.stringify({
+                uris: [`spotify:track:${trackId}`],
+                position_ms: 0
+              })
+            });
+            playbackStarted.current = true;
+          } else {
+            await player.resume();
+          }
         } else {
           await player.pause();
         }
@@ -101,6 +107,11 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
 
     handlePlayback();
   }, [trackId, isPlaying, player, deviceId]);
+
+  useEffect(() => {
+    // Reset playbackStarted when trackId changes
+    playbackStarted.current = false;
+  }, [trackId]);
 
   const togglePlayPause = async () => {
     if (!player) return;
