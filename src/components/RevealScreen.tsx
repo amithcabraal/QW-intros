@@ -1,5 +1,5 @@
 import React from 'react';
-import { SkipForward, Share2, ExternalLink, Music2, Clock, Target, X } from 'lucide-react';
+import { SkipForward, Share2, ExternalLink, Music2, Clock, Target, ThumbsUp, ThumbsDown, Ban } from 'lucide-react';
 import { SpotifyTrack } from '../types/game';
 import { calculateSimilarity } from '../utils/stringMatch';
 import { motion } from 'framer-motion';
@@ -14,6 +14,14 @@ interface RevealScreenProps {
   onNextSong: () => void;
   elapsedTime: number;
 }
+
+const getAccuracyIcon = (similarity: number) => {
+  if (similarity === 1) return <Target className="w-5 h-5 text-white" />;
+  if (similarity >= 0.8) return <Target className="w-5 h-5 text-white" />;
+  if (similarity >= 0.6) return <ThumbsUp className="w-5 h-5 text-white" />;
+  if (similarity > 0) return <ThumbsDown className="w-5 h-5 text-white" />;
+  return <Ban className="w-5 h-5 text-white" />;
+};
 
 export const RevealScreen: React.FC<RevealScreenProps> = ({ 
   track, 
@@ -109,19 +117,27 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
                   item.similarity >= 0.6 ? 'bg-yellow-500' : 'bg-red-500'
                 }`}
               >
-                <div className="absolute top-2 right-2">
-                  {item.correct ? 
-                    <Target className="w-5 h-5 text-white" /> : 
-                    <X className="w-5 h-5 text-white" />
-                  }
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-semibold">{item.label}</h3>
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ 
+                      type: "spring",
+                      stiffness: 260,
+                      damping: 20,
+                      delay: 0.7 + index * 0.1 
+                    }}
+                  >
+                    {getAccuracyIcon(item.similarity)}
+                  </motion.div>
                 </div>
-                <h3 className="text-lg font-semibold mb-1">{item.label}</h3>
                 <div>
                   <p className="text-sm opacity-80 mb-1">Your answer:</p>
                   <p className="font-medium mb-2">{item.answer || '(no answer)'}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex-grow h-2 bg-black/20 rounded-full">
+                  <div className="flex-grow h-2 bg-black/20 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${item.similarity * 100}%` }}
@@ -129,9 +145,14 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
                       className="h-full rounded-full bg-white"
                     />
                   </div>
-                  <span className="text-xs whitespace-nowrap">
+                  <motion.span 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1 + index * 0.1 }}
+                    className="text-xs whitespace-nowrap"
+                  >
                     {Math.round(item.similarity * 100)}%
-                  </span>
+                  </motion.span>
                 </div>
               </motion.div>
             ))}
