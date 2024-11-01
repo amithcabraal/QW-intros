@@ -25,6 +25,7 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
   const [player, setPlayer] = useState<any>(null);
   const [deviceId, setDeviceId] = useState<string>('');
   const [isInitialized, setIsInitialized] = useState(false);
+  const [currentTrackId, setCurrentTrackId] = useState<string>(trackId);
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -48,7 +49,7 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
       });
 
       player.addListener('player_state_changed', (state: any) => {
-        if (state && !isInitialized) {
+        if (state) {
           setIsInitialized(true);
           onReady();
         }
@@ -65,6 +66,13 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (trackId !== currentTrackId) {
+      setCurrentTrackId(trackId);
+      preloadTrack(trackId);
+    }
+  }, [trackId]);
+
   const transferPlayback = async (deviceId: string) => {
     try {
       await fetch('https://api.spotify.com/v1/me/player', {
@@ -78,8 +86,17 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
           play: false
         })
       });
+      
+      await preloadTrack(trackId);
+    } catch (error) {
+      console.error('Error transferring playback:', error);
+    }
+  };
 
-      // Pre-load the track
+  const preloadTrack = async (trackId: string) => {
+    if (!deviceId) return;
+
+    try {
       await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
         method: 'PUT',
         headers: {
@@ -92,18 +109,20 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
         })
       });
 
-      // Immediately pause to prepare for playback
-      setTimeout(async () => {
+      // Immediately pause after loading
+      if (player) {
         await player.pause();
-      }, 100);
+        setIsInitialized(true);
+        onReady();
+      }
     } catch (error) {
-      console.error('Error transferring playback:', error);
+      console.error('Error preloading track:', error);
     }
   };
 
   useEffect(() => {
     const handlePlayback = async () => {
-      if (!player || !deviceId || !trackId || !isInitialized) return;
+      if (!player || !isInitialized) return;
 
       try {
         if (isPlaying) {
@@ -117,7 +136,7 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
     };
 
     handlePlayback();
-  }, [trackId, isPlaying, player, deviceId, isInitialized]);
+  }, [isPlaying, player, isInitialized]);
 
   return null;
 };
