@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { Pause, Play } from 'lucide-react';
 
 interface SpotifyPreviewPlayerProps {
@@ -15,32 +15,44 @@ export const SpotifyPreviewPlayer: React.FC<SpotifyPreviewPlayerProps> = ({
   isPlaying
 }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const currentTimeRef = useRef<number>(0);
+
+  const handleEnded = useCallback(() => {
+    onPause();
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+    }
+  }, [onPause]);
 
   useEffect(() => {
     if (!previewUrl) return;
     
     audioRef.current = new Audio(previewUrl);
-    audioRef.current.addEventListener('ended', () => {
-      onPause();
-    });
+    audioRef.current.addEventListener('ended', handleEnded);
 
     return () => {
       if (audioRef.current) {
+        currentTimeRef.current = audioRef.current.currentTime;
         audioRef.current.pause();
-        audioRef.current.removeEventListener('ended', onPause);
+        audioRef.current.removeEventListener('ended', handleEnded);
       }
     };
-  }, [previewUrl]);
+  }, [previewUrl, handleEnded]);
 
   useEffect(() => {
     if (!audioRef.current) return;
 
     if (isPlaying) {
-      audioRef.current.play();
+      audioRef.current.currentTime = currentTimeRef.current;
+      audioRef.current.play().catch(error => {
+        console.error('Error playing audio:', error);
+        onPause();
+      });
     } else {
+      currentTimeRef.current = audioRef.current.currentTime;
       audioRef.current.pause();
     }
-  }, [isPlaying]);
+  }, [isPlaying, onPause]);
 
   const togglePlayPause = () => {
     if (!audioRef.current || !previewUrl) return;
