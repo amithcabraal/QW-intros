@@ -52,7 +52,7 @@ export const GamePlay: React.FC<GamePlayProps> = ({
 
   return (
     <div className="max-w-2xl mx-auto landscape:max-w-none landscape:flex landscape:items-center landscape:gap-8">
-      <div className="landscape:w-1/2 landscape:flex landscape:flex-col landscape:items-center landscape:justify-center">
+      <div className="flex flex-col items-center justify-center mb-8 landscape:mb-0 landscape:w-1/2">
         <div className="relative">
           <button
             ref={playButtonRef}
