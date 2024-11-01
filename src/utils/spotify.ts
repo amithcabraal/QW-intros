@@ -6,7 +6,8 @@ const SCOPES = [
   'playlist-read-private',
   'playlist-read-collaborative',
   'streaming',
-  'user-modify-playback-state'
+  'user-modify-playback-state',
+  'user-read-playback-state'
 ];
 
 export const loginWithSpotify = () => {
@@ -36,6 +37,33 @@ export const getHashParams = () => {
   }
 
   return hashParams;
+};
+
+export const checkSpotifyPremium = async (): Promise<boolean> => {
+  try {
+    const token = localStorage.getItem('spotify_token');
+    if (!token) return false;
+
+    const response = await fetch('https://api.spotify.com/v1/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 403 || response.status === 401) {
+        localStorage.removeItem('spotify_token');
+        return false;
+      }
+      throw new Error('Failed to fetch user data');
+    }
+
+    const data = await response.json();
+    return data.product === 'premium';
+  } catch (error) {
+    console.error('Error checking premium status:', error);
+    return false;
+  }
 };
 
 export const getSpotifyApi = async () => {
