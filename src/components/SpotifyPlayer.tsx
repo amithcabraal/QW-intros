@@ -28,8 +28,11 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
   const retryCount = useRef(0);
   const maxRetries = 3;
   const currentTrackRef = useRef<string | null>(null);
+  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const checkPlaybackState = useCallback(async () => {
+    if (!isPlaying) return;
+    
     try {
       const response = await fetch('https://api.spotify.com/v1/me/player', {
         headers: {
@@ -42,8 +45,7 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
       }
 
       const data = await response.json();
-      if (!data.is_playing && isPlaying) {
-        // Playback stopped unexpectedly, retry
+      if (data && !data.is_playing && isPlaying) {
         controlPlayback(true);
       }
     } catch (err) {
@@ -51,12 +53,11 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
     }
   }, [isPlaying]);
 
-  const controlPlayback = async (forcePlay = false) => {
+  const controlPlayback = useCallback(async (forcePlay = false) => {
     if (!isReady || !deviceId || !trackId) return;
 
     try {
       if (isPlaying || forcePlay) {
-        // Only start playback if the track has changed or playback was forced
         if (currentTrackRef.current !== trackId || forcePlay) {
           const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
             method: 'PUT',
@@ -76,12 +77,15 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
 
           currentTrackRef.current = trackId;
           
-          // Set up periodic check for playback state
-          const checkInterval = setInterval(() => {
+          // Clear existing interval if any
+          if (checkIntervalRef.current) {
+            clearInterval(checkIntervalRef.current);
+          }
+
+          // Set up new interval
+          checkIntervalRef.current = setInterval(() => {
             checkPlaybackState();
           }, 2000);
-
-          return () => clearInterval(checkInterval);
         }
       } else {
         await fetch('https://api.spotify.com/v1/me/player/pause', {
@@ -92,42 +96,42 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
         });
       }
 
-      retryCount.current = 0; // Reset retry count on successful playback
+      retryCount.current = 0;
     } catch (err) {
       console.error('Playback control error:', err);
       
       if (retryCount.current < maxRetries) {
         retryCount.current++;
-        console.log(`Retrying playback (attempt ${retryCount.current}/${maxRetries})...`);
         setTimeout(() => controlPlayback(true), 1000 * retryCount.current);
       } else {
         setError('Failed to control playback');
         onPause();
       }
     }
-  };
+  }, [isReady, deviceId, trackId, isPlaying, checkPlaybackState, onPause]);
 
   const initializePlayer = useCallback(() => {
-    const player = new window.Spotify.Player({
+    if (!window.Spotify || player) return;
+
+    const newPlayer = new window.Spotify.Player({
       name: 'Beat the Intro Web Player',
       getOAuthToken: cb => cb(localStorage.getItem('spotify_token') || ''),
       volume: 0.5
     });
 
-    player.addListener('player_state_changed', (state: any) => {
+    const handleStateChange = (state: any) => {
       if (!state) return;
 
       if (state.paused && state.position === 0) {
         onPause();
       }
 
-      // Handle unexpected pauses
       if (state.paused && isPlaying) {
         controlPlayback(true);
       }
-    });
+    };
 
-    player.addListener('ready', async ({ device_id }: { device_id: string }) => {
+    const handleReady = async ({ device_id }: { device_id: string }) => {
       console.log('Ready with Device ID', device_id);
       setDeviceId(device_id);
       setIsReady(true);
@@ -150,82 +154,86 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
         }
       } catch (err) {
         console.error('Error transferring playback:', err);
-        // Retry transfer if it fails
-        setTimeout(() => {
-          player.connect();
-        }, 1000);
+        setTimeout(() => newPlayer.connect(), 1000);
       }
-    });
+    };
 
-    player.addListener('not_ready', ({ device_id }: { device_id: string }) => {
+    newPlayer.addListener('player_state_changed', handleStateChange);
+    newPlayer.addListener('ready', handleReady);
+
+    newPlayer.addListener('not_ready', ({ device_id }: { device_id: string }) => {
       console.log('Device ID has gone offline', device_id);
       setIsReady(false);
-      // Attempt to reconnect
-      setTimeout(() => {
-        player.connect();
-      }, 1000);
+      setTimeout(() => newPlayer.connect(), 1000);
     });
 
-    player.addListener('initialization_error', ({ message }: { message: string }) => {
+    newPlayer.addListener('initialization_error', ({ message }: { message: string }) => {
       console.error('Failed to initialize:', message);
       setError('Failed to initialize player');
-      // Attempt to reinitialize
-      setTimeout(() => {
-        player.connect();
-      }, 1000);
+      setTimeout(() => newPlayer.connect(), 1000);
     });
 
-    player.addListener('authentication_error', ({ message }: { message: string }) => {
+    newPlayer.addListener('authentication_error', ({ message }: { message: string }) => {
       console.error('Failed to authenticate:', message);
       setError('Authentication failed');
       localStorage.removeItem('spotify_token');
       window.location.href = '/login';
     });
 
-    player.addListener('account_error', ({ message }: { message: string }) => {
+    newPlayer.addListener('account_error', ({ message }: { message: string }) => {
       console.error('Failed to validate Spotify account:', message);
       setError('Premium account required');
     });
 
-    player.connect().then((success: boolean) => {
+    newPlayer.connect().then((success: boolean) => {
       if (success) {
         console.log('The Web Playback SDK successfully connected to Spotify!');
       }
     });
 
-    setPlayer(player);
+    setPlayer(newPlayer);
 
     return () => {
-      player.disconnect();
+      newPlayer.removeListener('player_state_changed', handleStateChange);
+      newPlayer.removeListener('ready', handleReady);
+      newPlayer.disconnect();
     };
-  }, [onPause, isPlaying]);
+  }, [player, isPlaying, onPause, controlPlayback]);
 
   useEffect(() => {
-    if (!window.Spotify) {
-      const script = document.createElement('script');
-      script.src = 'https://sdk.scdn.co/spotify-player.js';
-      script.async = true;
+    const script = document.createElement('script');
+    script.src = 'https://sdk.scdn.co/spotify-player.js';
+    script.async = true;
 
-      document.body.appendChild(script);
+    document.body.appendChild(script);
 
-      window.onSpotifyWebPlaybackSDKReady = () => {
-        initializePlayer();
-      };
+    window.onSpotifyWebPlaybackSDKReady = () => {
+      initializePlayer();
+    };
 
-      return () => {
-        document.body.removeChild(script);
-      };
-    } else {
+    return () => {
+      document.body.removeChild(script);
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
+      }
+    };
+  }, [initializePlayer]);
+
+  useEffect(() => {
+    if (window.Spotify) {
       initializePlayer();
     }
   }, [initializePlayer]);
 
   useEffect(() => {
-    const cleanup = controlPlayback();
+    controlPlayback();
+    
     return () => {
-      if (cleanup) cleanup();
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
+      }
     };
-  }, [isPlaying, deviceId, trackId, isReady]);
+  }, [isPlaying, controlPlayback]);
 
   const handlePlayPause = () => {
     if (error) {
