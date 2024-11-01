@@ -1,5 +1,5 @@
 import React from 'react';
-import { SkipForward, Share2, ExternalLink, Music2, Clock } from 'lucide-react';
+import { SkipForward, Share2, ExternalLink, Music2, Clock, Target, X } from 'lucide-react';
 import { SpotifyTrack } from '../types/game';
 import { calculateSimilarity } from '../utils/stringMatch';
 import { motion } from 'framer-motion';
@@ -28,14 +28,8 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
   const titleSimilarity = calculateSimilarity(userAnswer, track.name);
   const artistSimilarity = calculateSimilarity(userArtistAnswer, track.artists[0].name);
 
-  const getScoreEmoji = (similarity: number) => {
-    if (similarity >= 0.8) return '🎯';
-    if (similarity >= 0.6) return '👍';
-    return '❌';
-  };
-
   const handleShare = async () => {
-    const shareText = `🎵 Try this Beat the Intro!\n\n${isCorrect ? `I got it in ${Math.round(elapsedTime)} seconds!` : "I couldn't get this one!"}\n\nCan you beat me? Try now: https://qw-intros.netlify.app?track=${track.id}`;
+    const shareText = `🎵 Try this Beat the Intro!\n\n${isCorrect ? `I got it in ${elapsedTime.toFixed(1)} seconds!` : "I couldn't get this one!"}\n\nCan you beat me? Try now: ${window.location.origin}?track=${track.id}`;
 
     if (navigator.share) {
       try {
@@ -61,7 +55,7 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 15 }}
-          className="relative mx-auto mb-8"
+          className="relative mx-auto mb-6"
         >
           <a 
             href={`https://open.spotify.com/track/${track.id}`}
@@ -78,12 +72,9 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
               <ExternalLink className="w-8 h-8 text-white" />
             </div>
           </a>
-          <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full">
-            <Music2 className="w-6 h-6 text-green-400" />
-          </div>
         </motion.div>
 
-        <div className="mt-12 space-y-6">
+        <div className="space-y-4">
           <div className="text-center">
             <motion.h2 
               initial={{ opacity: 0 }}
@@ -103,29 +94,34 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
             </motion.p>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4">
             {[
-              { label: 'Song Title', similarity: titleSimilarity, answer: userAnswer },
-              { label: 'Artist', similarity: artistSimilarity, answer: userArtistAnswer }
+              { label: 'Song Title', similarity: titleSimilarity, answer: userAnswer, correct: isCorrect },
+              { label: 'Artist', similarity: artistSimilarity, answer: userArtistAnswer, correct: isArtistCorrect }
             ].map((item, index) => (
               <motion.div
                 key={item.label}
                 initial={{ opacity: 0, x: index === 0 ? -20 : 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 + index * 0.1 }}
-                className={`p-6 rounded-lg bg-opacity-20 ${
+                className={`p-4 rounded-lg bg-opacity-20 relative ${
                   item.similarity >= 0.8 ? 'bg-green-500' :
                   item.similarity >= 0.6 ? 'bg-yellow-500' : 'bg-red-500'
                 }`}
               >
-                <h3 className="text-lg font-semibold mb-2">{item.label}</h3>
-                <p className="text-2xl mb-1">{getScoreEmoji(item.similarity)}</p>
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-sm opacity-80">Your answer:</p>
-                    <p className="font-medium">{item.answer || '(no answer)'}</p>
-                  </div>
-                  <div className="w-full bg-black/20 rounded-full h-2">
+                <div className="absolute top-2 right-2">
+                  {item.correct ? 
+                    <Target className="w-5 h-5 text-white" /> : 
+                    <X className="w-5 h-5 text-white" />
+                  }
+                </div>
+                <h3 className="text-lg font-semibold mb-1">{item.label}</h3>
+                <div>
+                  <p className="text-sm opacity-80 mb-1">Your answer:</p>
+                  <p className="font-medium mb-2">{item.answer || '(no answer)'}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-grow h-2 bg-black/20 rounded-full">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${item.similarity * 100}%` }}
@@ -133,9 +129,9 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
                       className="h-full rounded-full bg-white"
                     />
                   </div>
-                  <p className="text-xs">
-                    Accuracy: {Math.round(item.similarity * 100)}%
-                  </p>
+                  <span className="text-xs whitespace-nowrap">
+                    {Math.round(item.similarity * 100)}%
+                  </span>
                 </div>
               </motion.div>
             ))}
@@ -145,43 +141,42 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 }}
-            className="text-center space-y-4"
+            className="flex items-center justify-center gap-6 text-xl font-bold mt-4"
           >
-            <div className="flex items-center justify-center gap-2 text-2xl font-bold">
-              <Clock className="w-6 h-6" />
-              <span>{Math.round(elapsedTime)}s</span>
+            <div className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              <span>{elapsedTime.toFixed(1)}s</span>
             </div>
-
-            <p className="text-2xl font-bold">
-              Score: {score} {isCorrect || isArtistCorrect ? (
+            <div>
+              Score: {score} {(isCorrect || isArtistCorrect) && (
                 <span className="text-green-400">
-                  (+{(isCorrect ? 1 : 0) + (isArtistCorrect ? 1 : 0)} points)
+                  (+{(isCorrect ? 1 : 0) + (isArtistCorrect ? 1 : 0)})
                 </span>
-              ) : null}
-            </p>
-
-            <div className="flex items-center justify-center gap-4">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleShare}
-                className="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-8 rounded-full inline-flex items-center gap-2 transition"
-              >
-                <Share2 size={20} />
-                Share Result
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onNextSong}
-                className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full inline-flex items-center gap-2 transition"
-              >
-                <SkipForward size={20} />
-                Next Song
-              </motion.button>
+              )}
             </div>
           </motion.div>
+
+          <div className="flex items-center justify-center gap-4">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleShare}
+              className="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-8 rounded-full inline-flex items-center gap-2 transition"
+            >
+              <Share2 size={20} />
+              Share Result
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onNextSong}
+              className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full inline-flex items-center gap-2 transition"
+            >
+              <SkipForward size={20} />
+              Next Song
+            </motion.button>
+          </div>
         </div>
       </div>
     </motion.div>
