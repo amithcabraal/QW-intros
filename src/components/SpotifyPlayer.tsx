@@ -33,38 +33,36 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
       volume: 0.5
     });
 
+    // Handle player state changes
+    player.addListener('player_state_changed', (state: any) => {
+      if (!state) return;
+
+      // If the track ends, pause our game
+      if (state.paused && state.position === 0) {
+        onPause();
+      }
+    });
+
     player.addListener('ready', async ({ device_id }: { device_id: string }) => {
       console.log('Ready with Device ID', device_id);
       setDeviceId(device_id);
       setIsReady(true);
-      
+
+      // Immediately transfer playback to our device
       try {
-        // Get current playback state
-        const response = await fetch('https://api.spotify.com/v1/me/player', {
+        await fetch('https://api.spotify.com/v1/me/player', {
+          method: 'PUT',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`,
-          }
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            device_ids: [device_id],
+            play: false
+          })
         });
-
-        if (response.ok) {
-          // Transfer playback only if no active device
-          const data = await response.json();
-          if (!data.device || data.device.id !== device_id) {
-            await fetch('https://api.spotify.com/v1/me/player', {
-              method: 'PUT',
-              headers: {
-                'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                device_ids: [device_id],
-                play: false
-              })
-            });
-          }
-        }
       } catch (err) {
-        console.error('Error checking playback state:', err);
+        console.error('Error transferring playback:', err);
       }
     });
 
@@ -89,37 +87,38 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
       setError('Premium account required');
     });
 
-    player.addListener('playback_error', ({ message }: { message: string }) => {
-      console.error('Failed to perform playback:', message);
-      setError('Playback failed');
+    player.connect().then((success: boolean) => {
+      if (success) {
+        console.log('The Web Playback SDK successfully connected to Spotify!');
+      }
     });
 
-    player.connect();
     setPlayer(player);
-  }, []);
 
-  // Initialize the Spotify Web Playback SDK
+    return () => {
+      player.disconnect();
+    };
+  }, [onPause]);
+
   useEffect(() => {
     if (!window.Spotify) {
       const script = document.createElement('script');
       script.src = 'https://sdk.scdn.co/spotify-player.js';
       script.async = true;
 
+      document.body.appendChild(script);
+
       window.onSpotifyWebPlaybackSDKReady = () => {
         initializePlayer();
       };
 
-      document.head.appendChild(script);
+      return () => {
+        document.body.removeChild(script);
+      };
     } else {
       initializePlayer();
     }
-
-    return () => {
-      if (player) {
-        player.disconnect();
-      }
-    };
-  }, []);
+  }, [initializePlayer]);
 
   // Control playback based on isPlaying prop
   useEffect(() => {
@@ -128,40 +127,26 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
 
       try {
         if (isPlaying) {
-          // First, check if we're already playing the correct track
-          const stateResponse = await fetch('https://api.spotify.com/v1/me/player', {
+          // Start playback of the track
+          await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+            method: 'PUT',
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              uris: [`spotify:track:${trackId}`],
+              position_ms: 0
+            })
+          });
+        } else {
+          // Pause playback
+          await fetch('https://api.spotify.com/v1/me/player/pause', {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
             }
           });
-
-          if (stateResponse.ok) {
-            const state = await stateResponse.json();
-            const currentTrackId = state?.item?.uri?.split(':')[2];
-            
-            // Only start new playback if we're not already playing the correct track
-            if (currentTrackId !== trackId) {
-              const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-                method: 'PUT',
-                headers: {
-                  'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  uris: [`spotify:track:${trackId}`],
-                  position_ms: 0
-                })
-              });
-
-              if (!response.ok) {
-                throw new Error('Failed to start playback');
-              }
-            } else if (player) {
-              await player.resume();
-            }
-          }
-        } else if (player) {
-          await player.pause();
         }
       } catch (err) {
         console.error('Playback control error:', err);
