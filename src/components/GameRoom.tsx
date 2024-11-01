@@ -31,6 +31,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -97,6 +98,12 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
   }, [isPlaying, hasStarted]);
 
   const startGame = useCallback((availableTracks: SpotifyTrack[]) => {
+    if (availableTracks.length === 0) {
+      setError('No playable tracks found in this playlist. Try another one!');
+      setGameState(prev => ({ ...prev, gameStatus: 'selecting' }));
+      return;
+    }
+
     const randomTrack = availableTracks[Math.floor(Math.random() * availableTracks.length)];
     setGameState(prev => ({
       ...prev,
@@ -107,6 +114,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
     setElapsedTime(0);
     setHasStarted(false);
     setIsPlaying(false);
+    setError(null);
   }, []);
 
   const handleGenreSelect = async (genre: Genre) => {
@@ -124,6 +132,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
       startGame(validTracks);
     } catch (error) {
       console.error('Failed to load tracks:', error);
+      setError('Failed to load tracks. Please try again.');
       navigate('/login');
     }
   };
@@ -144,7 +153,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
       startGame(validTracks);
     } catch (error) {
       console.error('Failed to load tracks:', error);
-      navigate('/login');
+      setError('Failed to load tracks. Please try again.');
     }
   };
 
@@ -215,6 +224,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
     }));
     setShowPlaylists(false);
     setTracks([]);
+    setError(null);
   };
 
   return (
@@ -247,6 +257,12 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
                 <LogOut size={20} />
                 Logout
               </button>
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-500/20 border border-red-500/50 text-white px-4 py-3 rounded-lg">
+              {error}
             </div>
           )}
         </div>
