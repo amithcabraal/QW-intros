@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Music, LogOut, Home } from 'lucide-react';
-import { fetchPlaylistTracks } from '../utils/spotify';
+import { fetchPlaylistTracks, checkSpotifyPremium } from '../utils/spotify';
 import { GenreSelection } from './GenreSelection';
 import { PlaylistSelection } from './PlaylistSelection';
 import { GamePlay } from './GamePlay';
@@ -33,26 +33,25 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
   const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('spotify_token');
-    if (!token) {
-      navigate('/login');
-    } else {
-      // Check if user has premium
-      fetch('https://api.spotify.com/v1/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      .then(res => res.json())
-      .then(data => {
-        setIsPremium(data.product === 'premium');
-        document.title = isPremium ? 'Beat the Intro' : 'Name that Tune';
-      })
-      .catch(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('spotify_token');
+      if (!token) {
         navigate('/login');
-      });
-    }
-  }, [navigate, isPremium]);
+        return;
+      }
+
+      try {
+        const hasPremium = await checkSpotifyPremium();
+        setIsPremium(hasPremium);
+        document.title = hasPremium ? 'Beat the Intro' : 'Name that Tune';
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        navigate('/login');
+      }
+    };
+
+    checkAuth();
+  }, [navigate]);
 
   useEffect(() => {
     if (initialTrackId) {
@@ -149,7 +148,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
     }
   };
 
-  const handleAnswerSubmit = useCallback(() => {
+  const handleAnswerSubmit = () => {
     setIsPlaying(false);
     setHasStarted(false);
     setGameState(prev => ({
@@ -157,19 +156,19 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
       gameStatus: 'revealed',
       score: isCorrectAnswer() ? prev.score + (isCorrectArtist() ? 2 : 1) : prev.score
     }));
-  }, []);
+  };
 
-  const isCorrectAnswer = useCallback(() => {
+  const isCorrectAnswer = () => {
     if (!gameState.currentTrack) return false;
     return areSimilar(answer, gameState.currentTrack.name);
-  }, [answer, gameState.currentTrack]);
+  };
 
-  const isCorrectArtist = useCallback(() => {
+  const isCorrectArtist = () => {
     if (!gameState.currentTrack) return false;
     return areSimilar(artistAnswer, gameState.currentTrack.artists[0].name);
-  }, [artistAnswer, gameState.currentTrack]);
+  };
 
-  const handleNextSong = useCallback(() => {
+  const handleNextSong = () => {
     if (initialTrackId) {
       setGameState(prev => ({ ...prev, gameStatus: 'selecting' }));
       setTracks([]);
@@ -178,16 +177,16 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
     }
     setAnswer('');
     setArtistAnswer('');
-  }, [initialTrackId, tracks, startGame]);
+  };
 
-  const handlePlayPause = useCallback((playing: boolean) => {
+  const handlePlayPause = (playing: boolean) => {
     setIsPlaying(playing);
     if (playing && !hasStarted) {
       setHasStarted(true);
     }
-  }, [hasStarted]);
+  };
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = async () => {
     setIsPlaying(false);
     try {
       const token = localStorage.getItem('spotify_token');
@@ -206,9 +205,9 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
       localStorage.removeItem('spotify_token');
       navigate('/login');
     }
-  }, [navigate]);
+  };
 
-  const handleReturnToGenres = useCallback(() => {
+  const handleReturnToGenres = () => {
     setGameState(prev => ({
       ...prev,
       gameStatus: 'selecting',
@@ -216,7 +215,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
     }));
     setShowPlaylists(false);
     setTracks([]);
-  }, []);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-800 text-white">
@@ -225,9 +224,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
           <div className="flex items-center justify-center">
             <div className="flex items-center gap-3">
               <Music className="w-10 h-10 text-green-400" />
-              <h1 className="text-3xl font-bold">
-                {isPremium ? 'Beat the Intro' : 'Name that Tune'}
-              </h1>
+              <h1 className="text-3xl font-bold">{isPremium ? 'Beat the Intro' : 'Name that Tune'}</h1>
             </div>
           </div>
 
