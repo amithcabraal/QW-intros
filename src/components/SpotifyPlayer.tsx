@@ -90,10 +90,14 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
     const handlePlayback = async () => {
       if (!trackId) return;
 
+      const targetDeviceId = deviceId || webPlaybackDeviceId;
+      if (!targetDeviceId) return;
+
       try {
         if (isPlaying) {
           if (!playbackStarted.current) {
-            await fetch(`https://api.spotify.com/v1/me/player/play${deviceId ? `?device_id=${deviceId}` : ''}`, {
+            // Start new track
+            await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${targetDeviceId}`, {
               method: 'PUT',
               headers: {
                 'Content-Type': 'application/json',
@@ -106,8 +110,8 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
             });
             playbackStarted.current = true;
           } else {
-            // Resume on selected device
-            await fetch(`https://api.spotify.com/v1/me/player/play${deviceId ? `?device_id=${deviceId}` : ''}`, {
+            // Resume current track
+            await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${targetDeviceId}`, {
               method: 'PUT',
               headers: {
                 'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
@@ -115,8 +119,8 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
             });
           }
         } else {
-          // Pause on selected device
-          await fetch(`https://api.spotify.com/v1/me/player/pause${deviceId ? `?device_id=${deviceId}` : ''}`, {
+          // Pause playback
+          await fetch(`https://api.spotify.com/v1/me/player/pause?device_id=${targetDeviceId}`, {
             method: 'PUT',
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
@@ -130,7 +134,7 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
     };
 
     handlePlayback();
-  }, [trackId, isPlaying, deviceId, onPause]);
+  }, [trackId, isPlaying, deviceId, webPlaybackDeviceId, onPause]);
 
   useEffect(() => {
     // Reset playbackStarted when trackId changes
