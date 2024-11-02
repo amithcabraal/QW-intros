@@ -1,15 +1,24 @@
 import React, { useState } from 'react';
-import { Menu, X, Home, HelpCircle, Mail, Shield, LogOut, Sun, Moon } from 'lucide-react';
+import { Menu, X, Home, HelpCircle, Mail, Shield, LogOut, Sun, Moon, Smartphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useDarkMode } from '../hooks/useDarkMode';
+import { DeviceSelection } from './DeviceSelection';
 
 interface NavigationProps {
   onLogout: () => void;
+  onDeviceSelect?: (deviceId: string) => void;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ onLogout }) => {
+export const Navigation: React.FC<NavigationProps> = ({ onLogout, onDeviceSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showDevices, setShowDevices] = useState(false);
   const { isDark, setIsDark } = useDarkMode();
+
+  const handleDeviceSelect = (deviceId: string) => {
+    if (onDeviceSelect) {
+      onDeviceSelect(deviceId);
+    }
+  };
 
   return (
     <>
@@ -43,6 +52,18 @@ export const Navigation: React.FC<NavigationProps> = ({ onLogout }) => {
                     <Home className="w-5 h-5" />
                     <span>Genres</span>
                   </Link>
+                </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      setShowDevices(true);
+                      setIsOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-800 dark:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                  >
+                    <Smartphone className="w-5 h-5" />
+                    <span>Select Device</span>
+                  </button>
                 </li>
                 <li>
                   <Link
@@ -99,6 +120,13 @@ export const Navigation: React.FC<NavigationProps> = ({ onLogout }) => {
             </nav>
           </div>
         </div>
+      )}
+
+      {showDevices && (
+        <DeviceSelection
+          onClose={() => setShowDevices(false)}
+          onDeviceSelect={handleDeviceSelect}
+        />
       )}
     </>
   );
