@@ -11,7 +11,7 @@ import { areSimilar } from '../utils/stringMatch';
 import { calculateScore } from '../utils/scoring';
 import type { Genre, GameState, SpotifyTrack } from '../types/game';
 import type { Playlist } from '../types/spotify';
-
+ 
 interface GameRoomProps {
   initialTrackId?: string | null;
 }
