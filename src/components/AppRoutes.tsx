@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { Login } from './Login';
 import { SpotifyCallback } from './SpotifyCallback';
@@ -13,20 +13,33 @@ export function AppRoutes() {
   const isAuthenticated = !!localStorage.getItem('spotify_token');
   const [searchParams] = useSearchParams();
   const trackId = searchParams.get('track');
+  const [currentDeviceId, setCurrentDeviceId] = useState<string>('');
 
   return (
     <>
       {isAuthenticated && window.location.pathname !== '/login' && (
-        <Navigation onLogout={() => {
-          localStorage.removeItem('spotify_token');
-          window.location.href = '/login';
-        }} />
+        <Navigation 
+          onLogout={() => {
+            localStorage.removeItem('spotify_token');
+            window.location.href = '/login';
+          }}
+          onDeviceSelect={setCurrentDeviceId}
+        />
       )}
       
       <Routes>
         <Route 
           path="/" 
-          element={isAuthenticated ? <GameRoom initialTrackId={trackId} /> : <Navigate to="/login" />} 
+          element={
+            isAuthenticated ? (
+              <GameRoom 
+                initialTrackId={trackId} 
+                currentDeviceId={currentDeviceId}
+              />
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
         />
         <Route path="/login" element={<Login />} />
         <Route path="/callback" element={<SpotifyCallback />} />
