@@ -8,6 +8,7 @@ import { Privacy } from './Privacy';
 import { Contact } from './Contact';
 import { Navigation } from './Navigation';
 import { MockReveal } from './MockReveal';
+import { RecentGames } from './RecentGames';
 
 export function AppRoutes() {
   const isAuthenticated = !!localStorage.getItem('spotify_token');
@@ -41,6 +42,10 @@ export function AppRoutes() {
         <Route 
           path="/contact" 
           element={isAuthenticated ? <Contact /> : <Navigate to="/login" />} 
+        />
+        <Route 
+          path="/recent" 
+          element={isAuthenticated ? <RecentGames /> : <Navigate to="/login" />} 
         />
         <Route path="/mock" element={<MockReveal />} />
         <Route path="*" element={<Navigate to="/" />} />
