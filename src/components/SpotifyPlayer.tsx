@@ -6,6 +6,7 @@ interface SpotifyPlayerProps {
   onPlay: () => void;
   onPause: () => void;
   isPlaying: boolean;
+  deviceId?: string;
 }
 
 declare global {
@@ -19,10 +20,11 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
   trackId, 
   onPlay, 
   onPause,
-  isPlaying
+  isPlaying,
+  deviceId
 }) => {
   const [player, setPlayer] = useState<any>(null);
-  const [deviceId, setDeviceId] = useState<string>('');
+  const [webPlaybackDeviceId, setWebPlaybackDeviceId] = useState<string>('');
   const playbackStarted = useRef(false);
 
   useEffect(() => {
@@ -41,9 +43,8 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
 
       player.addListener('ready', ({ device_id }: { device_id: string }) => {
         console.log('Ready with Device ID', device_id);
-        setDeviceId(device_id);
+        setWebPlaybackDeviceId(device_id);
         setPlayer(player);
-        transferPlayback(device_id);
       });
 
       player.connect();
@@ -57,32 +58,42 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
     };
   }, []);
 
-  const transferPlayback = async (deviceId: string) => {
-    try {
-      await fetch('https://api.spotify.com/v1/me/player', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
-        },
-        body: JSON.stringify({
-          device_ids: [deviceId],
-          play: false
-        })
-      });
-    } catch (error) {
-      console.error('Error transferring playback:', error);
-    }
-  };
+  // Cleanup on logout
+  useEffect(() => {
+    const cleanup = async () => {
+      if (webPlaybackDeviceId) {
+        try {
+          await fetch(`https://api.spotify.com/v1/me/player/devices`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              device_ids: [webPlaybackDeviceId]
+            })
+          });
+        } catch (error) {
+          console.error('Error cleaning up device:', error);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', cleanup);
+    return () => {
+      window.removeEventListener('beforeunload', cleanup);
+      cleanup();
+    };
+  }, [webPlaybackDeviceId]);
 
   useEffect(() => {
     const handlePlayback = async () => {
-      if (!player || !deviceId || !trackId) return;
+      if (!trackId) return;
 
       try {
         if (isPlaying) {
           if (!playbackStarted.current) {
-            await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+            await fetch(`https://api.spotify.com/v1/me/player/play${deviceId ? `?device_id=${deviceId}` : ''}`, {
               method: 'PUT',
               headers: {
                 'Content-Type': 'application/json',
@@ -95,18 +106,31 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
             });
             playbackStarted.current = true;
           } else {
-            await player.resume();
+            // Resume on selected device
+            await fetch(`https://api.spotify.com/v1/me/player/play${deviceId ? `?device_id=${deviceId}` : ''}`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
+              }
+            });
           }
         } else {
-          await player.pause();
+          // Pause on selected device
+          await fetch(`https://api.spotify.com/v1/me/player/pause${deviceId ? `?device_id=${deviceId}` : ''}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
+            }
+          });
         }
       } catch (error) {
         console.error('Error controlling playback:', error);
+        onPause();
       }
     };
 
     handlePlayback();
-  }, [trackId, isPlaying, player, deviceId]);
+  }, [trackId, isPlaying, deviceId, onPause]);
 
   useEffect(() => {
     // Reset playbackStarted when trackId changes
@@ -114,8 +138,6 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
   }, [trackId]);
 
   const togglePlayPause = async () => {
-    if (!player) return;
-
     if (isPlaying) {
       onPause();
     } else {
