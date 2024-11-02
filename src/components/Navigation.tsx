@@ -20,6 +20,44 @@ export const Navigation: React.FC<NavigationProps> = ({ onLogout, onDeviceSelect
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      // Clean up the web playback device
+      const token = localStorage.getItem('spotify_token');
+      if (token) {
+        const response = await fetch('https://api.spotify.com/v1/me/player/devices', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const { devices } = await response.json();
+          const webPlaybackDevice = devices.find((d: any) => d.name === 'Beat the Intro Player');
+          
+          if (webPlaybackDevice) {
+            await fetch('https://api.spotify.com/v1/me/player', {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                device_ids: [webPlaybackDevice.id]
+              })
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning up device:', error);
+    }
+
+    // Proceed with logout
+    localStorage.removeItem('spotify_token');
+    window.location.href = '/login';
+  };
+
   return (
     <>
       <button
@@ -108,7 +146,7 @@ export const Navigation: React.FC<NavigationProps> = ({ onLogout, onDeviceSelect
                   <button
                     onClick={() => {
                       setIsOpen(false);
-                      onLogout();
+                      handleLogout();
                     }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                   >
