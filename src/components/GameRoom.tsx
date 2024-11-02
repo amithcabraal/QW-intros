@@ -134,6 +134,21 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
     setIsPlaying(false);
     setIsLoading(false);
     setError(null);
+
+    // Save to history
+    const history = JSON.parse(localStorage.getItem('game_history') || '[]');
+    if (history.length >= 20) {
+      history.pop(); // Remove oldest entry
+    }
+    history.unshift({
+      trackId: track.id,
+      name: track.name,
+      artist: track.artists[0].name,
+      albumImage: track.album.images[0]?.url,
+      timestamp: new Date().toISOString(),
+      score: 0
+    });
+    localStorage.setItem('game_history', JSON.stringify(history));
   };
 
   const handleGenreSelect = async (genre: Genre) => {
@@ -185,6 +200,19 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
     const isCorrectArtist = isCorrectArtistAnswer();
     const points = calculateScore(isCorrectTitle, isCorrectArtist, elapsedTime);
     
+    // Update history with score
+    const history = JSON.parse(localStorage.getItem('game_history') || '[]');
+    const currentGame = history[0];
+    if (currentGame && currentGame.trackId === gameState.currentTrack.id) {
+      currentGame.score = points;
+      currentGame.userAnswer = answer;
+      currentGame.userArtistAnswer = artistAnswer;
+      currentGame.isCorrectTitle = isCorrectTitle;
+      currentGame.isCorrectArtist = isCorrectArtist;
+      currentGame.elapsedTime = elapsedTime;
+      localStorage.setItem('game_history', JSON.stringify(history));
+    }
+
     setGameState(prev => ({
       ...prev,
       gameStatus: 'revealed',
@@ -203,6 +231,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
   };
 
   const handleNextSong = () => {
+    setIsPlaying(false); // Stop current playback
     if (initialTrackId) {
       setGameState(prev => ({ ...prev, gameStatus: 'selecting' }));
       setTracks([]);
@@ -214,27 +243,42 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
   };
 
   const handlePlayPause = (playing: boolean) => {
-    setIsLoading(true);
-    setIsPlaying(playing);
-    if (playing && !hasStarted) {
+    if (!playing) {
+      setIsPlaying(false);
+      setIsLoading(false);
+      return;
+    }
+    
+    setIsPlaying(true);
+    if (!hasStarted) {
+      setIsLoading(true);
       setTimeout(() => {
         setIsLoading(false);
         setHasStarted(true);
       }, 500);
-    } else {
-      setIsLoading(false);
     }
   };
 
+  const goToGenres = () => {
+    setIsPlaying(false);
+    setGameState(prev => ({ ...prev, gameStatus: 'selecting' }));
+    setTracks([]);
+    setAnswer('');
+    setArtistAnswer('');
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-800 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-800 dark:from-gray-900 dark:to-gray-800 text-white">
       <div className="max-w-6xl mx-auto p-8">
         <div className="space-y-4">
           <div className="flex items-center justify-center">
-            <div className="flex items-center gap-3">
+            <button
+              onClick={goToGenres}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
               <Music className="w-10 h-10 text-green-400" />
               <h1 className="text-3xl font-bold">{isPremium ? 'Beat the Intro' : 'Name that Tune'}</h1>
-            </div>
+            </button>
           </div>
 
           {error && (
