@@ -11,6 +11,41 @@ export const Navigation: React.FC<NavigationProps> = ({ onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { isDark, setIsDark } = useDarkMode();
 
+  const handleLogout = async () => {
+    try {
+      // Get the current playback state to check active devices
+      const response = await fetch('https://api.spotify.com/v1/me/player/devices', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
+        }
+      });
+
+      if (response.ok) {
+        const { devices } = await response.json();
+        const webPlayer = devices.find((d: any) => d.name === 'Beat the Intro Player');
+        
+        // If our web player is found, disconnect it
+        if (webPlayer) {
+          await fetch('https://api.spotify.com/v1/me/player', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('spotify_token')}`
+            },
+            body: JSON.stringify({
+              device_ids: [devices.find((d: any) => d.id !== webPlayer.id)?.id].filter(Boolean)
+            })
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning up Spotify device:', error);
+    } finally {
+      setIsOpen(false);
+      onLogout();
+    }
+  };
+
   return (
     <>
       <button
@@ -85,10 +120,7 @@ export const Navigation: React.FC<NavigationProps> = ({ onLogout }) => {
                 </li>
                 <li>
                   <button
-                    onClick={() => {
-                      setIsOpen(false);
-                      onLogout();
-                    }}
+                    onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-4 py-3 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                   >
                     <LogOut className="w-5 h-5" />
