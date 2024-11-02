@@ -14,9 +14,10 @@ import type { Playlist } from '../types/spotify';
 
 interface GameRoomProps {
   initialTrackId?: string | null;
+  currentDeviceId?: string;
 }
 
-export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
+export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId, currentDeviceId }) => {
   const navigate = useNavigate();
   const [gameState, setGameState] = useState<GameState>({
     currentTrack: null,
@@ -273,6 +274,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
             hasStarted={hasStarted}
             onPlayPause={handlePlayPause}
             isPremium={isPremium}
+            currentDeviceId={currentDeviceId}
           />
         )}
 
