@@ -200,6 +200,12 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
     const isCorrectArtist = isCorrectArtistAnswer();
     const points = calculateScore(isCorrectTitle, isCorrectArtist, elapsedTime);
     
+    setGameState(prev => ({
+      ...prev,
+      gameStatus: 'revealed',
+      score: prev.score + points
+    }));
+
     // Update history with score
     const history = JSON.parse(localStorage.getItem('game_history') || '[]');
     const currentGame = history[0];
@@ -212,12 +218,6 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
       currentGame.elapsedTime = elapsedTime;
       localStorage.setItem('game_history', JSON.stringify(history));
     }
-
-    setGameState(prev => ({
-      ...prev,
-      gameStatus: 'revealed',
-      score: prev.score + points
-    }));
   };
 
   const isCorrectAnswer = () => {
@@ -233,8 +233,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
   const handleNextSong = () => {
     setIsPlaying(false); // Stop current playback
     if (initialTrackId) {
-      setGameState(prev => ({ ...prev, gameStatus: 'selecting' }));
-      setTracks([]);
+      goToGenres();
     } else {
       startGame(tracks);
     }
