@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, Home, HelpCircle, Mail, Shield, LogOut, Sun, Moon } from 'lucide-react';
+import { Menu, X, Home, HelpCircle, Mail, Shield, LogOut, Sun, Moon, History } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useDarkMode } from '../hooks/useDarkMode';
 
@@ -61,7 +61,7 @@ export const Navigation: React.FC<NavigationProps> = ({ onLogout }) => {
             <div className="p-4 flex justify-end">
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors"
+                className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-800 dark:text-white"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -77,6 +77,16 @@ export const Navigation: React.FC<NavigationProps> = ({ onLogout }) => {
                   >
                     <Home className="w-5 h-5" />
                     <span>Genres</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/recent"
+                    className="flex items-center gap-3 px-4 py-3 text-gray-800 dark:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <History className="w-5 h-5" />
+                    <span>Recent Games</span>
                   </Link>
                 </li>
                 <li>
