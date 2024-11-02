@@ -4,7 +4,7 @@ import { loginWithSpotify } from '../utils/spotify';
 export const Login = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-800 text-white flex items-center justify-center p-8">
-      <div className="max-w-md w-full text-center">
+      <div className="max-w-md w-full text-center mt-[-10vh]">
         <Music className="w-20 h-20 mx-auto mb-6 text-green-400" />
         <h1 className="text-5xl font-bold mb-4">Beat the Intro</h1>
         <p className="text-xl mb-8 text-white/80">Test your music knowledge with Spotify!</p>
