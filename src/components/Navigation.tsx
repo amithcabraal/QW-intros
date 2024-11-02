@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, X, Home, HelpCircle, Mail, Shield, LogOut, Sun, Moon, History } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDarkMode } from '../hooks/useDarkMode';
 
 interface NavigationProps {
@@ -10,6 +10,7 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({ onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { isDark, setIsDark } = useDarkMode();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
@@ -46,6 +47,12 @@ export const Navigation: React.FC<NavigationProps> = ({ onLogout }) => {
     }
   };
 
+  const handleGenresClick = () => {
+    setIsOpen(false);
+    navigate('/', { replace: true });
+    window.location.reload(); // Force reload to reset all state
+  };
+
   return (
     <>
       <button
@@ -70,14 +77,13 @@ export const Navigation: React.FC<NavigationProps> = ({ onLogout }) => {
             <nav className="px-4 py-2">
               <ul className="space-y-2">
                 <li>
-                  <Link
-                    to="/"
-                    className="flex items-center gap-3 px-4 py-3 text-gray-800 dark:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
-                    onClick={() => setIsOpen(false)}
+                  <button
+                    onClick={handleGenresClick}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-800 dark:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors text-left"
                   >
                     <Home className="w-5 h-5" />
-                    <span>Genres</span>
-                  </Link>
+                    <span>Choose Playlist</span>
+                  </button>
                 </li>
                 <li>
                   <Link
