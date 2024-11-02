@@ -29,6 +29,11 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
   const [error, setError] = useState<string>('');
   const playbackStarted = useRef(false);
   const tokenRefreshTimeout = useRef<NodeJS.Timeout>();
+  const currentTrackRef = useRef<string>(trackId);
+
+  useEffect(() => {
+    currentTrackRef.current = trackId;
+  }, [trackId]);
 
   const handleError = useCallback((message: string) => {
     setError(message);
@@ -36,8 +41,6 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
   }, [onPause]);
 
   const refreshToken = useCallback(async () => {
-    // Implement your token refresh logic here
-    // This is a placeholder that should be replaced with your actual token refresh implementation
     try {
       const response = await fetch('/api/refresh-token', {
         method: 'POST',
@@ -49,8 +52,6 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
       if (response.ok) {
         const { access_token, expires_in } = await response.json();
         localStorage.setItem('spotify_token', access_token);
-        
-        // Schedule next refresh
         tokenRefreshTimeout.current = setTimeout(refreshToken, (expires_in - 60) * 1000);
       }
     } catch (error) {
@@ -73,14 +74,12 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
           const token = localStorage.getItem('spotify_token');
           if (token) {
             cb(token);
-            // Schedule token refresh
             tokenRefreshTimeout.current = setTimeout(refreshToken, 3600 * 1000);
           }
         },
         volume
       });
 
-      // Error handling
       player.addListener('initialization_error', ({ message }: { message: string }) => {
         handleError(`Failed to initialize player: ${message}`);
       });
@@ -97,27 +96,21 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
         handleError(`Playback failed: ${message}`);
       });
 
-      // Playback status updates
       player.addListener('player_state_changed', (state: any) => {
-        if (!state) {
-          return;
-        }
+        if (!state) return;
 
-        // Update UI based on state
         if (state.paused) {
           onPause();
         } else {
           onPlay();
         }
 
-        // Update volume if changed externally
         if (state.volume !== volume) {
           setVolume(state.volume);
           localStorage.setItem('spotify-volume', String(state.volume));
         }
       });
 
-      // Ready handling
       player.addListener('ready', ({ device_id }: { device_id: string }) => {
         console.log('Ready with Device ID', device_id);
         setDeviceId(device_id);
@@ -167,10 +160,8 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
       if (!player || !deviceId || !trackId) return;
 
       try {
-        const state = await player.getCurrentState();
-        
         if (isPlaying) {
-          if (!playbackStarted.current || (state && state.track_window.current_track.id !== trackId)) {
+          if (!playbackStarted.current || currentTrackRef.current !== trackId) {
             await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
               method: 'PUT',
               headers: {
@@ -199,7 +190,9 @@ export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({
   }, [trackId, isPlaying, player, deviceId, handleError]);
 
   useEffect(() => {
-    playbackStarted.current = false;
+    if (currentTrackRef.current !== trackId) {
+      playbackStarted.current = false;
+    }
   }, [trackId]);
 
   const handleVolumeChange = async (newVolume: number) => {
