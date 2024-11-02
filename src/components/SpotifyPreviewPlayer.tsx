@@ -27,7 +27,9 @@ export const SpotifyPreviewPlayer: React.FC<SpotifyPreviewPlayerProps> = ({
   useEffect(() => {
     if (!previewUrl) return;
     
+    // Pre-load the audio when the component mounts
     audioRef.current = new Audio(previewUrl);
+    audioRef.current.load(); // Explicitly load the audio
     audioRef.current.addEventListener('ended', handleEnded);
 
     return () => {
@@ -43,13 +45,14 @@ export const SpotifyPreviewPlayer: React.FC<SpotifyPreviewPlayerProps> = ({
     if (!audioRef.current) return;
 
     if (isPlaying) {
-      audioRef.current.currentTime = currentTimeRef.current;
-      audioRef.current.play().catch(error => {
-        console.error('Error playing audio:', error);
-        onPause();
-      });
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error('Error playing audio:', error);
+          onPause();
+        });
+      }
     } else {
-      currentTimeRef.current = audioRef.current.currentTime;
       audioRef.current.pause();
     }
   }, [isPlaying, onPause]);
