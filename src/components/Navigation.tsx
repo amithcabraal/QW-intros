@@ -1,62 +1,15 @@
 import React, { useState } from 'react';
-import { Menu, X, Home, HelpCircle, Mail, Shield, LogOut, Sun, Moon, Smartphone } from 'lucide-react';
+import { Menu, X, Home, HelpCircle, Mail, Shield, LogOut, Sun, Moon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useDarkMode } from '../hooks/useDarkMode';
-import { DeviceSelection } from './DeviceSelection';
 
 interface NavigationProps {
   onLogout: () => void;
-  onDeviceSelect?: (deviceId: string) => void;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ onLogout, onDeviceSelect }) => {
+export const Navigation: React.FC<NavigationProps> = ({ onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [showDevices, setShowDevices] = useState(false);
   const { isDark, setIsDark } = useDarkMode();
-
-  const handleDeviceSelect = (deviceId: string) => {
-    if (onDeviceSelect) {
-      onDeviceSelect(deviceId);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      // Clean up the web playback device
-      const token = localStorage.getItem('spotify_token');
-      if (token) {
-        const response = await fetch('https://api.spotify.com/v1/me/player/devices', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (response.ok) {
-          const { devices } = await response.json();
-          const webPlaybackDevice = devices.find((d: any) => d.name === 'Beat the Intro Player');
-          
-          if (webPlaybackDevice) {
-            await fetch('https://api.spotify.com/v1/me/player', {
-              method: 'DELETE',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                device_ids: [webPlaybackDevice.id]
-              })
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error cleaning up device:', error);
-    }
-
-    // Proceed with logout
-    localStorage.removeItem('spotify_token');
-    window.location.href = '/login';
-  };
 
   return (
     <>
@@ -90,18 +43,6 @@ export const Navigation: React.FC<NavigationProps> = ({ onLogout, onDeviceSelect
                     <Home className="w-5 h-5" />
                     <span>Genres</span>
                   </Link>
-                </li>
-                <li>
-                  <button
-                    onClick={() => {
-                      setShowDevices(true);
-                      setIsOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-800 dark:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
-                  >
-                    <Smartphone className="w-5 h-5" />
-                    <span>Select Device</span>
-                  </button>
                 </li>
                 <li>
                   <Link
@@ -146,7 +87,7 @@ export const Navigation: React.FC<NavigationProps> = ({ onLogout, onDeviceSelect
                   <button
                     onClick={() => {
                       setIsOpen(false);
-                      handleLogout();
+                      onLogout();
                     }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                   >
@@ -158,13 +99,6 @@ export const Navigation: React.FC<NavigationProps> = ({ onLogout, onDeviceSelect
             </nav>
           </div>
         </div>
-      )}
-
-      {showDevices && (
-        <DeviceSelection
-          onClose={() => setShowDevices(false)}
-          onDeviceSelect={handleDeviceSelect}
-        />
       )}
     </>
   );
