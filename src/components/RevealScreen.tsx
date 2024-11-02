@@ -64,7 +64,7 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 200, damping: 15 }}
-            href={`https://open.spotify.com/track/${track.id}`}
+            href={`https://open.spotify.com/album/${track.album.id}`}
             target="_blank"
             rel="noopener noreferrer"
             className="block relative group"
@@ -81,22 +81,28 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
         </div>
 
         <div className="text-center">
-          <motion.h2 
+          <motion.a 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="text-3xl landscape:text-2xl font-bold mb-1"
+            href={`https://open.spotify.com/track/${track.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block text-3xl landscape:text-2xl font-bold mb-1 hover:text-green-400 transition-colors"
           >
             {track.name}
-          </motion.h2>
-          <motion.p 
+          </motion.a>
+          <motion.a 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="text-xl landscape:text-lg text-white/80"
+            href={`https://open.spotify.com/artist/${track.artists[0].id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-xl landscape:text-lg text-white/80 hover:text-green-400 transition-colors"
           >
             {track.artists[0].name}
-          </motion.p>
+          </motion.a>
         </div>
       </motion.div>
 
