@@ -95,7 +95,6 @@ export const fetchPlaylists = async () => {
         return null;
       }
       if (response.status === 403) {
-        // Return empty array for non-premium users
         return { items: [] };
       }
       throw new Error('Failed to fetch playlists');
@@ -108,43 +107,57 @@ export const fetchPlaylists = async () => {
   }
 };
 
+async function fetchAllPlaylistTracks(playlistId: string, api: { headers: HeadersInit }) {
+  let tracks = [];
+  let nextUrl = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?fields=items(track(id,name,artists,album,preview_url)),next`;
+
+  while (nextUrl) {
+    try {
+      const response = await fetch(nextUrl, { headers: api.headers });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch tracks');
+      }
+
+      const data = await response.json();
+      tracks = [...tracks, ...data.items];
+      nextUrl = data.next;
+    } catch (error) {
+      console.error('Error fetching tracks:', error);
+      break;
+    }
+  }
+
+  return tracks;
+}
+
 export const fetchPlaylistTracks = async (playlistId: string) => {
   const api = await getSpotifyApi();
   if (!api) return null;
 
   try {
-    // First try to fetch as a public playlist
-    const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks?fields=items(track(id,name,artists,album,preview_url))`, {
-      headers: api.headers
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        localStorage.removeItem('spotify_token');
-        return null;
-      }
-      if (response.status === 403) {
-        // Try fetching the playlist details first
-        const playlistResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}`, {
-          headers: api.headers
-        });
-        
-        if (!playlistResponse.ok) {
-          throw new Error('Failed to fetch playlist');
-        }
-
-        const playlistData = await playlistResponse.json();
-        // Return tracks from the playlist data
-        return {
-          items: playlistData.tracks.items.filter((item: any) => 
-            item.track && item.track.preview_url
-          )
-        };
-      }
-      throw new Error('Failed to fetch playlist tracks');
+    // First try to fetch all tracks
+    const tracks = await fetchAllPlaylistTracks(playlistId, api);
+    
+    if (tracks.length > 0) {
+      return { items: tracks };
     }
 
-    return response.json();
+    // If no tracks were fetched, try getting the playlist details
+    const playlistResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}`, {
+      headers: api.headers
+    });
+    
+    if (!playlistResponse.ok) {
+      throw new Error('Failed to fetch playlist');
+    }
+
+    const playlistData = await playlistResponse.json();
+    return {
+      items: playlistData.tracks.items.filter((item: any) => 
+        item.track && item.track.preview_url
+      )
+    };
   } catch (error) {
     console.error('Error fetching playlist tracks:', error);
     return { items: [] };
