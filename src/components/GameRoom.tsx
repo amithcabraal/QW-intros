@@ -35,6 +35,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
   const [hasStarted, setHasStarted] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [playlistTitle, setPlaylistTitle] = useState<string>('');
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -165,6 +166,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
         .filter((track: SpotifyTrack) => track && track.preview_url);
       
       setTracks(validTracks);
+      setPlaylistTitle(genre.name);
       startGame(validTracks);
     } catch (error) {
       console.error('Failed to load tracks:', error);
@@ -186,6 +188,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
       
       setTracks(validTracks);
       setShowPlaylists(false);
+      setPlaylistTitle(playlist.name);
       startGame(validTracks);
     } catch (error) {
       console.error('Failed to load tracks:', error);
@@ -278,7 +281,12 @@ export const GameRoom: React.FC<GameRoomProps> = ({ initialTrackId }) => {
           >
             <div className="flex items-center gap-3">
               <Music className="w-10 h-10 text-green-400" />
-              <h1 className="text-3xl font-bold">{isPremium ? 'Beat the Intro' : 'Name that Tune'}</h1>
+              <h1 className="text-3xl font-bold">
+                {isPremium ? 'Beat the Intro' : 'Name that Tune'}
+                {playlistTitle && gameState.gameStatus !== 'selecting' && (
+                  <span className="text-white/60"> - {playlistTitle}</span>
+                )}
+              </h1>
             </div>
           </Link>
 
