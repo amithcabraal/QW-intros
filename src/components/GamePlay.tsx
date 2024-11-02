@@ -19,6 +19,7 @@ interface GamePlayProps {
   onPlayPause: (playing: boolean) => void;
   isPremium?: boolean;
   isLoading: boolean;
+  currentDeviceId?: string;
 }
 
 export const GamePlay: React.FC<GamePlayProps> = ({
@@ -33,7 +34,8 @@ export const GamePlay: React.FC<GamePlayProps> = ({
   hasStarted,
   onPlayPause,
   isPremium = false,
-  isLoading
+  isLoading,
+  currentDeviceId
 }) => {
   const { startListening: startTitleListening } = useSpeechRecognition(onAnswerChange);
   const { startListening: startArtistListening } = useSpeechRecognition(onArtistAnswerChange);
@@ -84,6 +86,7 @@ export const GamePlay: React.FC<GamePlayProps> = ({
               onPlay={() => onPlayPause(true)}
               onPause={() => onPlayPause(false)}
               isPlaying={isPlaying}
+              deviceId={currentDeviceId}
             />
           ) : (
             <SpotifyPreviewPlayer
