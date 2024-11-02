@@ -1,5 +1,5 @@
 import React from 'react';
-import { Share2, Trophy, Clock, Ban } from 'lucide-react';
+import { Share2, Trophy, Clock, Ban, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
@@ -15,6 +15,8 @@ interface GameHistoryItem {
   isCorrectTitle?: boolean;
   isCorrectArtist?: boolean;
   elapsedTime?: number;
+  artistId?: string;
+  albumId?: string;
 }
 
 export const RecentGames = () => {
@@ -78,16 +80,40 @@ export const RecentGames = () => {
               className="bg-white/10 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg p-4"
             >
               <div className="flex items-center gap-4">
-                <img
-                  src={game.albumImage}
-                  alt={game.name}
-                  className="w-16 h-16 rounded-lg"
-                />
-                <div className="flex-grow">
-                  <h3 className="font-bold">{game.name}</h3>
-                  <p className="text-white/60">{game.artist}</p>
+                <a
+                  href={game.albumId ? `https://open.spotify.com/album/${game.albumId}` : `https://open.spotify.com/track/${game.trackId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative group"
+                >
+                  <img
+                    src={game.albumImage}
+                    alt={game.name}
+                    className="w-16 h-16 rounded-lg transition-transform group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                    <ExternalLink className="w-5 h-5 text-white" />
+                  </div>
+                </a>
+                <div className="flex-grow min-w-0">
+                  <a
+                    href={`https://open.spotify.com/track/${game.trackId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold hover:text-green-400 transition-colors truncate block"
+                  >
+                    {game.name}
+                  </a>
+                  <a
+                    href={game.artistId ? `https://open.spotify.com/artist/${game.artistId}` : '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white/60 hover:text-green-400 transition-colors truncate block"
+                  >
+                    {game.artist}
+                  </a>
                 </div>
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <div className="flex items-center gap-2 justify-end mb-2">
                     <Trophy className="w-4 h-4 text-green-400" />
                     <span>{game.score} points</span>
@@ -99,7 +125,7 @@ export const RecentGames = () => {
                     </div>
                   )}
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 shrink-0">
                   <button
                     onClick={() => handleShare(game)}
                     className="p-2 hover:bg-white/10 rounded-full transition"
