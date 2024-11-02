@@ -52,14 +52,14 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
   };
 
   return (
-    <div className="max-w-2xl mx-auto landscape:max-w-none landscape:flex landscape:items-start landscape:gap-8">
+    <div className="max-w-2xl mx-auto h-full landscape:max-w-none landscape:flex landscape:items-center landscape:gap-8">
       <motion.div 
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5 }}
-        className="landscape:w-1/2"
+        className="landscape:w-1/2 landscape:flex landscape:flex-col landscape:items-center landscape:justify-center"
       >
-        <div className="relative mx-auto mb-6">
+        <div className="relative mx-auto mb-4 landscape:mb-2">
           <motion.a 
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
@@ -72,7 +72,7 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
             <img
               src={track.album.images[0].url}
               alt={track.name}
-              className="w-64 h-64 mx-auto rounded-lg shadow-xl ring-4 ring-white/10 transition-transform group-hover:scale-105"
+              className="w-64 h-64 landscape:w-48 landscape:h-48 mx-auto rounded-lg shadow-xl ring-4 ring-white/10 transition-transform group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
               <ExternalLink className="w-8 h-8 text-white" />
@@ -85,7 +85,7 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="text-3xl font-bold mb-2"
+            className="text-3xl landscape:text-2xl font-bold mb-1"
           >
             {track.name}
           </motion.h2>
@@ -93,7 +93,7 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="text-xl text-white/80"
+            className="text-xl landscape:text-lg text-white/80"
           >
             {track.artists[0].name}
           </motion.p>
@@ -104,9 +104,9 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5 }}
-        className="space-y-4 landscape:w-1/2"
+        className="space-y-4 landscape:w-1/2 landscape:h-full landscape:flex landscape:flex-col landscape:justify-center"
       >
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 landscape:grid-cols-2 gap-4">
           {[
             { label: 'Song Title', similarity: titleSimilarity, answer: userAnswer, correct: isCorrect },
             { label: 'Artist', similarity: artistSimilarity, answer: userArtistAnswer, correct: isArtistCorrect }
@@ -121,7 +121,7 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
                 item.similarity >= 0.6 ? 'bg-yellow-500' : 'bg-red-500'
               }`}
             >
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">{item.label}</h3>
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
@@ -136,7 +136,7 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
                   {getAccuracyIcon(item.similarity)}
                 </motion.div>
               </div>
-              <div className="mb-2">
+              <div>
                 <p className="text-sm opacity-80">Your answer: <span className="font-medium">{item.answer || '(no answer)'}</span></p>
               </div>
               <div className="flex items-center gap-2">
